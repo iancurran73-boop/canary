@@ -1,0 +1,302 @@
+/**
+ * tenant.config.example.ts
+ * ─────────────────────────
+ * Reference / working example using the original House of Meraki Studio values.
+ * Copy this to tenant.config.ts and edit it to rebrand the site.
+ *
+ * DO NOT import this file directly in application code — import tenant.config.ts.
+ */
+
+import type { TenantConfig } from "./shared/tenant-types";
+
+const config: TenantConfig = {
+  brand: {
+    name: "House of Meraki Studio",
+    shortName: "Meraki",
+    tagline: "Your Journey of Self Expression",
+    domain: "houseofmerakistudio.co.uk",
+    instagram: "houseofmerakistudio",
+    logoPath: "/img/logo.png",
+    favicon: "/favicon.png",
+    colors: {
+      // HSL "H S% L%" — no hsl() wrapper. These are written to CSS custom properties.
+      primary: "320 92% 50%",      // signature magenta
+      primaryFg: "0 0% 100%",
+      accent: "280 50% 78%",       // light purple lavender
+      accentFg: "285 45% 18%",
+      background: "35 40% 97%",   // warm cream
+      foreground: "285 45% 18%",  // deep aubergine
+      muted: "30 25% 93%",
+      mutedFg: "330 12% 38%",
+      border: "30 18% 88%",
+    },
+    fonts: {
+      display: "Cabinet Grotesk",
+      body: "Satoshi",
+    },
+  },
+
+  business: {
+    ownerName: "Antonia Malone",
+    phone: "+447591134200",
+    phoneDisplay: "+44 7591 134200",
+    email: "antoniamalone@hotmail.com",
+    address: {
+      line1: "151 Whitegate Drive",
+      city: "Blackpool",
+      postcode: "FY3 9BX",
+      country: "United Kingdom",
+    },
+    mapsUrl: "https://maps.google.com/?q=151+Whitegate+Drive,+Blackpool+FY3+9BX",
+  },
+
+  // 0=Sun, 1=Mon … 6=Sat
+  hours: {
+    0: { enabled: true,  note: "By request" },
+    1: { enabled: false },
+    2: { enabled: true,  start: "10:00", end: "18:00" },
+    3: { enabled: true,  start: "10:00", end: "18:00" },
+    4: { enabled: true,  start: "10:00", end: "18:00" },
+    5: { enabled: true,  start: "10:00", end: "18:00" },
+    6: { enabled: true,  start: "07:00", end: "19:00" },
+  },
+
+  // IDs must match what is seeded into Supabase via scripts/seed-supabase.ts
+  services: [
+    {
+      id: 1,
+      name: "Glam — Without Lashes",
+      description: "A polished glam look — full face, no lashes. Perfect for everyday occasions or when you prefer your own.",
+      durationMinutes: 45,
+      price: 40,
+      depositPercent: 50,
+      imageUrl: "/img/service-glam.png",
+      category: "Makeup",
+      sortOrder: 1,
+      active: true,
+    },
+    {
+      id: 2,
+      name: "Glam — With Lashes",
+      description: "The signature Meraki glam with strip or individual lashes for that camera-ready finish.",
+      durationMinutes: 60,
+      price: 45,
+      depositPercent: 50,
+      imageUrl: "/img/service-glam.png",
+      category: "Makeup",
+      sortOrder: 2,
+      active: true,
+    },
+    {
+      id: 3,
+      name: "Festival Glam",
+      description: "Bold, sparkly and fun — gems, glitter and statement liner for festivals, raves and themed nights.",
+      durationMinutes: 60,
+      price: 50,
+      depositPercent: 50,
+      imageUrl: "/img/service-glam.png",
+      category: "Makeup",
+      sortOrder: 3,
+      active: true,
+    },
+    {
+      id: 4,
+      name: "Glam with Party Lashes",
+      description: "Full glam with dramatic party lashes — the look that gets photographed all night.",
+      durationMinutes: 60,
+      price: 50,
+      depositPercent: 50,
+      imageUrl: "/img/service-glam.png",
+      category: "Makeup",
+      sortOrder: 4,
+      active: true,
+    },
+    {
+      id: 5,
+      name: "Wash and Blow Dry",
+      description: "Wash, condition and a smooth blow-dry — the perfect prep before any occasion.",
+      durationMinutes: 30,
+      price: 15,
+      depositPercent: 50,
+      imageUrl: "/img/service-wig.png",
+      category: "Hair",
+      sortOrder: 5,
+      active: true,
+    },
+    {
+      id: 6,
+      name: "Hair Up or Curls",
+      description: "Curls, waves or an updo styled to your outfit and occasion.",
+      durationMinutes: 45,
+      price: 20,
+      depositPercent: 50,
+      imageUrl: "/img/service-wig.png",
+      category: "Hair",
+      fromPrice: true,
+      sortOrder: 6,
+      active: true,
+    },
+    {
+      id: 7,
+      name: "Wig Installation",
+      description: "Professional install of your own unit — secured, styled and ready to go.",
+      durationMinutes: 45,
+      price: 20,
+      depositPercent: 50,
+      imageUrl: "/img/service-wig.png",
+      category: "Hair",
+      sortOrder: 7,
+      active: true,
+    },
+    {
+      id: 8,
+      name: "Wig Wash and Reset",
+      description: "Bring your existing unit back to life with a wash, condition and full restyle.",
+      durationMinutes: 45,
+      price: 20,
+      depositPercent: 50,
+      imageUrl: "/img/service-wig.png",
+      category: "Hair",
+      fromPrice: true,
+      sortOrder: 8,
+      active: true,
+    },
+    {
+      id: 9,
+      name: "Signature Meraki Makeover",
+      description: "A private session with full glam, wig styling, complete outfit styling, posing guidance and a mini photoshoot with two edited images. +£40 upgrade for ten edited images.",
+      durationMinutes: 150,
+      price: 180,
+      depositPercent: 50,
+      imageUrl: "/img/prices/03-signature-makeover.jpg",
+      category: "Experiences",
+      sortOrder: 9,
+      active: true,
+    },
+    {
+      id: 10,
+      name: "The Muse Experience",
+      description: "A 3–4 hour private experience. Full makeover, multiple outfit changes and a professional photoshoot with twenty edited images.",
+      durationMinutes: 210,
+      price: 260,
+      depositPercent: 50,
+      imageUrl: "/img/prices/04-muse-experience.jpg",
+      category: "Experiences",
+      sortOrder: 10,
+      active: true,
+    },
+    {
+      id: 11,
+      name: "The Bridal Experience",
+      description: "Wedding day makeup artistry built to last from ceremony to last dance. Includes bespoke trial, lashes, skincare consult and WhatsApp support.",
+      durationMinutes: 180,
+      price: 190,
+      depositPercent: 50,
+      imageUrl: "/img/prices/02-bridal-experience.jpg",
+      category: "Experiences",
+      fromPrice: true,
+      sortOrder: 11,
+      active: true,
+    },
+    {
+      id: 12,
+      name: "Out & About Experience",
+      description: "A 3–4 hour experience with full transformation, confidence and presentation coaching, plus an optional public outing for coffee or shopping.",
+      durationMinutes: 210,
+      price: 320,
+      depositPercent: 50,
+      imageUrl: "/img/prices/05-out-and-about.jpg",
+      category: "Experiences",
+      sortOrder: 12,
+      active: true,
+    },
+    {
+      id: 13,
+      name: "Meraki VIP Day",
+      description: "A 5–6 hour private booking with complete makeover and styling, multiple outfit changes, an extended photoshoot and an optional outing experience.",
+      durationMinutes: 330,
+      price: 450,
+      depositPercent: 50,
+      imageUrl: "/img/prices/06-vip-day.jpg",
+      category: "Experiences",
+      sortOrder: 13,
+      active: true,
+    },
+    {
+      id: 14,
+      name: "Makeup Masterclass · Male to Female",
+      description: "A fun, supportive and confidential group class for everyone exploring their feminine side. Includes cocktails and afternoon tea.",
+      durationMinutes: 180,
+      price: 30,
+      depositPercent: 50,
+      imageUrl: "/img/prices/07-masterclass.jpg",
+      category: "Lessons",
+      sortOrder: 14,
+      active: true,
+    },
+  ],
+
+  copy: {
+    heroTitle: "Your Journey of Self Expression",
+    heroSubtitle:
+      "At House of Meraki Studio, we believe in the power of transformation through makeup and wigs. It's a journey of self-expression, each brush stroke at a time. Our inclusive environment welcomes everyone to embrace their individualism.",
+    aboutTitle: "Hi, I'm Antonia.",
+    aboutBody:
+      "I'm the artist, owner and only pair of hands behind House of Meraki Studio. I built this place because I believe everyone — bride, glam regular, wig client, woman in transition — deserves a calm, beautiful space where the only goal is your version of beautiful.\n\n\"Meraki\" is a Greek word for doing something with soul, creativity and love. That's the standard I hold every appointment to.\n\nI started doing makeup for friends in my bedroom. One bride became three; three became a calendar full of weddings, photoshoots, prom seasons and the kind of clients who tell their friends.\n\nAlong the way I trained with some of the artists I admired most, added wig work to my offering and — most importantly — opened my doors to clients other studios still aren't ready for. Male-to-female transformations are now a specialism I'm deeply proud of: a service that demands technical skill, total privacy and unconditional respect.\n\nHouse of Meraki is where all of it lives now: a calm studio on Whitegate Drive, one chair, full attention. I'd love to welcome you in.",
+    bookingHeroSubtitle:
+      "Real-time availability · 50% deposit secures your slot · Personal reply within 24 hours.",
+    homeBullets: [
+      "Real-time availability — pick from open slots only",
+      "50% deposit secures your slot · balance on the day",
+      "Personal reply from Antonia within 24 hours",
+      "Cancel free up to 48 hours before",
+    ],
+    howItWorksTitle: "How a Booking With Us Works",
+    howItWorksIntro:
+      "From booking to your finished look — here's exactly what to expect when you visit House of Meraki Studio.",
+    howItWorksSteps: [
+      "Book your slot online and pay a 50% deposit to secure it.",
+      "I'll confirm the appointment personally within 24 hours.",
+      "On the day, come to the studio on Whitegate Drive — one chair, full attention, no rush.",
+      "We'll talk through the look you want before I start, so there are no surprises.",
+      "Balance is due on the day, by card or bank transfer.",
+      "Cancel or reschedule free up to 48 hours before your appointment.",
+    ],
+  },
+
+  gallery: [
+    { src: "/img/photos/bridal-natural-portrait.jpg", alt: "Natural bridal portrait — soft glow and effortless updo", category: "bridal" },
+    { src: "/img/photos/bridal-party-celebration.jpg", alt: "Bride and bridesmaids celebrating after makeup", category: "bridal" },
+    { src: "/img/photos/hero-pink-lash.jpg", alt: "Editorial pink eye and lash close-up", category: "glam" },
+    { src: "/img/photos/highlight-glam-pinup.jpg", alt: "Vintage pin-up glam with red lip and pin curls", category: "glam" },
+    { src: "/img/photos/glam-blonde-lashes.jpg", alt: "Glam blonde with full lash and nude lip", category: "glam" },
+    { src: "/img/photos/glam-silver-smokey.jpg", alt: "Silver smokey eye glam with topknot styling", category: "glam" },
+    { src: "/img/photos/glam-warm-smokey.jpg", alt: "Warm smokey eye with curls", category: "glam" },
+    { src: "/img/photos/glam-classic-portrait.jpg", alt: "Classic studio glam with curled hair", category: "glam" },
+    { src: "/img/photos/highlight-inclusive-smile.jpg", alt: "Warm auburn transformation portrait", category: "transformation" },
+    { src: "/img/photos/highlight-wig-red-bob.jpg", alt: "Red bob wig install with confident smile", category: "transformation" },
+    { src: "/img/photos/mtf-soft-glam-blonde.jpg", alt: "Soft glam transformation with blonde wig", category: "transformation" },
+    { src: "/img/photos/highlight-creative-hair.jpg", alt: "Creative pink and orange hair styling with bold eye", category: "creative" },
+  ],
+
+  payments: {
+    mode: "mvp",
+    contactWindow: "24 hours",
+    currency: "GBP",
+    currencySymbol: "£",
+  },
+
+  admin: {
+    passcode: "fabulous",
+  },
+
+  seo: {
+    siteUrl: "https://houseofmerakistudio.co.uk",
+    defaultTitle: "House of Meraki Studio · Makeup Artist in Blackpool · Bridal, Glam & MTF Transformations",
+    defaultDescription:
+      "Inclusive Blackpool makeup studio. Bridal makeup, special occasion glam, wig installation, 1-to-1 lessons and male-to-female transformations. Book online with a 50% deposit.",
+    ogImage: "/img/og-default.png",
+  },
+};
+
+export default config;

@@ -1,0 +1,55 @@
+# Sophie's Pampered Paws — Netlify/Apache config
+# Single-page-app routing + caching + HTTPS redirect
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP_HOST} !^localhost [NC]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # If the request is for a real file or directory, serve it as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Otherwise, route everything to index.html (SPA fallback)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# ----- Caching -----
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML — never cache (so updates show immediately)
+  ExpiresByType text/html "access plus 0 seconds"
+
+  # Hashed assets (JS/CSS/images in /assets and /img) — cache for a year
+  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot)$">
+    ExpiresDefault "access plus 1 year"
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Manifest + service worker — short cache
+  <FilesMatch "(manifest\.webmanifest|sw\.js)$">
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# ----- Security headers -----
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ----- Compression -----
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# Serve correct MIME for .webmanifest
+AddType application/manifest+json .webmanifest

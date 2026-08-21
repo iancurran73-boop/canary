@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!--
+      Title, description and OG tags are injected at runtime by main.tsx (via seo.ts).
+      These generic values serve as fallbacks for non-JS crawlers that don't execute scripts.
+      Edit tenant.config.ts → seo.* to change them for your tenant.
+    -->
+    <title>Sophie's Pampered Paws · Mobile Dog Grooming · Cramlington</title>
+    <meta name="description" content="Friendly, professional mobile dog grooming across Cramlington and Northumberland. Book online." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Neutral greyscale defaults so the first paint is neutral rather than
+         coloured-then-corrected. BrandThemeProvider applies tenant DB values on mount. -->
+    <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 0 0% 10%;
+        --primary: 0 0% 20%;
+        --primary-foreground: 0 0% 98%;
+        --accent: 0 0% 92%;
+        --accent-foreground: 0 0% 10%;
+        --muted: 0 0% 96%;
+        --muted-foreground: 0 0% 40%;
+        --border: 0 0% 90%;
+      }
+      body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
+    </style>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=2" />
+    <link rel="apple-touch-icon" href="/favicon.png?v=2" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Google Fonts preconnect — actual font URLs are injected by main.tsx -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Sophie's Pampered Paws",
+  "short_name": "Sophie's Pampered Paws",
+  "description": "Mobile dog grooming across Cramlington & Northumberland — book online",
+  "start_url": "/#/admin",
+  "display": "standalone",
+  "background_color": "#3c0e2e",
+  "theme_color": "#e0148f",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
