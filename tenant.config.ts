@@ -43,7 +43,7 @@ const config: TenantConfig = {
   },
 
   business: {
-    ownerName: "The Singing Canary Team", // TBC
+    ownerName: "Josh",
     phone: "+440000000000",               // TBC
     phoneDisplay: "TBC",
     email: "hello@thesingingcanary.co.uk", // TBC
