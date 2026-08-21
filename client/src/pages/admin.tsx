@@ -503,14 +503,14 @@ function AvailabilityTab() {
 
       <Card className="p-2 bg-card divide-y divide-card-border">
         {current.sort((a, b) => a.dayOfWeek - b.dayOfWeek).map((h, idx) => (
-          <div key={h.dayOfWeek} className="flex items-center gap-3 p-3" data-testid={`row-hours-${h.dayOfWeek}`}>
+          <div key={h.dayOfWeek} className="flex flex-wrap items-center gap-3 p-3" data-testid={`row-hours-${h.dayOfWeek}`}>
             <div className="w-20 sm:w-24 font-medium text-foreground">{DAYS[h.dayOfWeek]}</div>
             <Switch checked={h.enabled} onCheckedChange={(v) => update(idx, { enabled: v })} data-testid={`switch-day-${h.dayOfWeek}`} />
             {h.enabled ? (
-              <div className="flex items-center gap-2 flex-1 ml-1">
-                <Input type="time" value={h.startTime} onChange={(e) => update(idx, { startTime: e.target.value })} className="w-28" />
-                <span className="text-muted-foreground">to</span>
-                <Input type="time" value={h.endTime} onChange={(e) => update(idx, { endTime: e.target.value })} className="w-28" />
+              <div className="flex items-center gap-2 w-full pl-[5.75rem] sm:w-auto sm:flex-1 sm:ml-1 sm:pl-0">
+                <Input type="time" value={h.startTime} onChange={(e) => update(idx, { startTime: e.target.value })} className="w-28 min-w-0" />
+                <span className="text-muted-foreground shrink-0">to</span>
+                <Input type="time" value={h.endTime} onChange={(e) => update(idx, { endTime: e.target.value })} className="w-28 min-w-0" />
               </div>
             ) : (
               <span className="text-sm text-muted-foreground ml-1">Closed</span>

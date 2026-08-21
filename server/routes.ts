@@ -90,10 +90,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const buffer = settings.bufferMinutes;
     const step = 15; // 15-minute increments
 
-    // Existing bookings that day
+    // Existing bookings that day — the room is exclusive for the whole day,
+    // not just the booked session, so any pending/confirmed booking at all
+    // takes the entire day off the table.
     const dayBookings = (await storage.listBookings(date, date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
+    if (dayBookings.length > 0) return res.json({ slots: [], durationMinutes: settings.sessionDurationMinutes });
+
     // Blocked
     const blocks = (await storage.listBlockedDates(date, date));
 
@@ -105,15 +109,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const slotDate = new Date(target);
       slotDate.setMinutes(t);
       if (slotDate.getTime() - now.getTime() < minNoticeMs) continue;
-
-      // Conflict with existing bookings (+ buffer either side) — the room is
-      // exclusive, so any overlap at all blocks the slot.
-      const conflict = dayBookings.some((b) => {
-        const bs = toMinutes(b.startTime);
-        const be = toMinutes(b.endTime);
-        return t < be + buffer && slotEnd + buffer > bs;
-      });
-      if (conflict) continue;
 
       // Conflict with blocked
       const blocked = blocks.some((bd) => {
@@ -154,17 +149,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const endMin = startMin + settings.sessionDurationMinutes;
     const endTime = fromMinutes(endMin);
 
-    // Final slot check (race protection) — the room is exclusive, so any
-    // overlap with an existing pending/confirmed booking blocks this one.
+    // Final check (race protection) — the room is exclusive for the whole
+    // day, so any existing pending/confirmed booking that date blocks this one.
     const sameDay = (await storage.listBookings(data.date, data.date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    const conflict = sameDay.some((b) => {
-      const bs = toMinutes(b.startTime);
-      const be = toMinutes(b.endTime);
-      return startMin < be + settings.bufferMinutes && endMin + settings.bufferMinutes > bs;
-    });
-    if (conflict) return res.status(409).json({ error: "That session just got taken — please pick another." });
+    if (sameDay.length > 0) return res.status(409).json({ error: "That day just got booked — please pick another." });
 
     const booking = await storage.createBooking({
       customerName: data.customerName,
