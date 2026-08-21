@@ -17,6 +17,7 @@ import {
   insertWorkingHoursSchema,
   insertGalleryItemSchema,
   insertReviewSchema,
+  insertEventSchema,
 } from "@shared/schema";
 import { PAGE_LAYOUT_IDS } from "@shared/page-layouts";
 import { requireAdminAuth, issueSessionCookie, clearSessionCookie, checkLoginRateLimit, verifyPasscode } from "./adminAuth";
@@ -322,6 +323,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(await storage.listReviews(true));
   });
 
+  // Upcoming, active events only — past events drop off automatically.
+  app.get("/api/public/events", async (_req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    res.json(await storage.listEvents(true, today));
+  });
+
   // Nav-visible pages, in display order. Drives the site header/footer nav.
   app.get("/api/public/pages", async (_req, res) => {
     res.json(await storage.listPages(true));
@@ -393,6 +400,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
   app.delete("/api/admin/reviews/:id", async (req, res) => {
     res.json({ ok: await storage.deleteReview(Number(req.params.id)) });
+  });
+
+  // ========= ADMIN EVENTS =========
+
+  app.get("/api/admin/events", async (_req, res) => {
+    res.json(await storage.listEvents(false));
+  });
+  app.post("/api/admin/events", async (req, res) => {
+    const parse = insertEventSchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
+    res.json(await storage.createEvent(parse.data));
+  });
+  app.patch("/api/admin/events/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    const parse = insertEventSchema.partial().safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
+    const updated = await storage.updateEvent(id, parse.data);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+  app.delete("/api/admin/events/:id", async (req, res) => {
+    res.json({ ok: await storage.deleteEvent(Number(req.params.id)) });
   });
 
   // ========= ADMIN PAGES =========

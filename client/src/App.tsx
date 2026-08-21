@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import Book from "@/pages/book";
 import HowItWorks from "@/pages/how-it-works";
 import Gallery from "@/pages/gallery";
+import Events from "@/pages/events";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Admin from "@/pages/admin";
@@ -25,6 +26,7 @@ function AppRouter() {
       <Route path="/book" component={Book} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/gallery" component={Gallery} />
+      <Route path="/events" component={Events} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/widget" component={WidgetOnly} />

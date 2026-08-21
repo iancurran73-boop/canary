@@ -6,6 +6,7 @@ import {
   content,
   galleryItems,
   reviews,
+  events,
   pages,
 } from "@shared/schema";
 import type {
@@ -16,6 +17,7 @@ import type {
   ContentRow,
   GalleryItem, InsertGalleryItem,
   Review, InsertReview,
+  Event, InsertEvent,
   Page, InsertPage,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -109,6 +111,16 @@ sqlite.exec(`
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    date TEXT NOT NULL,
+    start_time TEXT NOT NULL DEFAULT '',
+    image_url TEXT NOT NULL DEFAULT '',
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS pages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     slug TEXT NOT NULL UNIQUE,
@@ -161,8 +173,9 @@ const seedIfEmpty = () => {
       { slug: "home", navLabel: "Home", path: "/", kind: "core", layout: null, sortOrder: 0, visible: true },
       { slug: "how-it-works", navLabel: "How It Works", path: "/how-it-works", kind: "core", layout: null, sortOrder: 1, visible: true },
       { slug: "gallery", navLabel: "Gallery", path: "/gallery", kind: "core", layout: null, sortOrder: 2, visible: true },
-      { slug: "about", navLabel: "About", path: "/about", kind: "core", layout: null, sortOrder: 3, visible: true },
-      { slug: "contact", navLabel: "Contact", path: "/contact", kind: "core", layout: null, sortOrder: 4, visible: true },
+      { slug: "events", navLabel: "Events", path: "/events", kind: "core", layout: null, sortOrder: 3, visible: true },
+      { slug: "about", navLabel: "About", path: "/about", kind: "core", layout: null, sortOrder: 4, visible: true },
+      { slug: "contact", navLabel: "Contact", path: "/contact", kind: "core", layout: null, sortOrder: 5, visible: true },
     ];
     for (const p of coreSeed) db.insert(pages).values({ ...p, createdAt: now }).run();
   }
@@ -217,6 +230,13 @@ export interface IStorage {
   createReview(data: InsertReview): Promise<Review>;
   updateReview(id: number, data: Partial<InsertReview>): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
+
+  // events
+  listEvents(activeOnly: boolean, from?: string): Promise<Event[]>;
+  getEvent(id: number): Promise<Event | undefined>;
+  createEvent(data: InsertEvent): Promise<Event>;
+  updateEvent(id: number, data: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: number): Promise<boolean>;
 
   // pages
   listPages(visibleOnly: boolean): Promise<Page[]>;
@@ -379,6 +399,28 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteReview(id: number) {
     const r = db.delete(reviews).where(eq(reviews.id, id)).run();
+    return r.changes > 0;
+  }
+
+  async listEvents(activeOnly: boolean, from?: string) {
+    let q = db.select().from(events).$dynamic();
+    if (activeOnly && from) q = q.where(and(eq(events.active, true), gte(events.date, from)));
+    else if (activeOnly) q = q.where(eq(events.active, true));
+    else if (from) q = q.where(gte(events.date, from));
+    return q.orderBy(asc(events.date)).all();
+  }
+  async getEvent(id: number) {
+    return db.select().from(events).where(eq(events.id, id)).get();
+  }
+  async createEvent(data: InsertEvent) {
+    return db.insert(events).values({ ...data, createdAt: Date.now() }).returning().get();
+  }
+  async updateEvent(id: number, data: Partial<InsertEvent>) {
+    db.update(events).set(data).where(eq(events.id, id)).run();
+    return db.select().from(events).where(eq(events.id, id)).get();
+  }
+  async deleteEvent(id: number) {
+    const r = db.delete(events).where(eq(events.id, id)).run();
     return r.changes > 0;
   }
 

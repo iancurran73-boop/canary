@@ -16,12 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 import { gbp, formatDuration, formatDate, formatDateShort, todayIso, addDays } from "@/lib/format";
 import { BrandMark } from "@/components/brand-mark";
 import {
-  Calendar, Briefcase, Clock, Settings as SettingsIcon, Plus, Trash2, Pencil, Bell, ChevronLeft,
+  Calendar, PartyPopper, Clock, Settings as SettingsIcon, Plus, Trash2, Pencil, Bell, ChevronLeft,
   CalendarOff, CheckCircle2, X, Loader2, BellRing, AlertCircle, FileText,
   ChevronUp, ChevronDown, GripVertical, Image as ImageIcon, Star, MessageSquare, CreditCard,
   Building2, Palette, ScrollText, MapPin, Mail, Layers, Eye, EyeOff,
 } from "lucide-react";
-import type { Booking, WorkingHours, BlockedDate, Settings, Review, ReturningCustomerInfo } from "@shared/schema";
+import type { Booking, WorkingHours, BlockedDate, Settings, Review, Event, ReturningCustomerInfo } from "@shared/schema";
 import { AdminGate, AdminLogout } from "@/components/admin-gate";
 import { useContent, useGalleryItems, useContentMutations } from "@/lib/content";
 import type { GalleryItem } from "@/lib/content";
@@ -31,7 +31,7 @@ import { ImageDropzone } from "@/components/content/ImageDropzone";
 import { InlineText } from "@/components/content/InlineText";
 import config from "@/lib/tenant";
 
-type Tab = "today" | "schedule" | "availability" | "settings" | "content" | "pages" | "reviews" | "payments" | "business" | "branding" | "policy" | "emails";
+type Tab = "today" | "schedule" | "availability" | "settings" | "content" | "pages" | "reviews" | "events" | "payments" | "business" | "branding" | "policy" | "emails";
 
 type AdminBooking = Booking & { returningCustomer?: ReturningCustomerInfo | null };
 
@@ -125,6 +125,7 @@ function AdminInner() {
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="content" data-testid="tab-content"><FileText className="size-4 mr-1.5" /> Content</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="pages" data-testid="tab-pages"><Layers className="size-4 mr-1.5" /> Pages</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="reviews" data-testid="tab-reviews"><Star className="size-4 mr-1.5" /> Reviews</TabsTrigger>
+                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="events" data-testid="tab-events"><PartyPopper className="size-4 mr-1.5" /> Events</TabsTrigger>
                 </TabsList>
               </NavGroup>
               <NavGroup label="Setup">
@@ -145,6 +146,7 @@ function AdminInner() {
             <TabsContent value="content"><ContentTab /></TabsContent>
             <TabsContent value="pages"><PagesTab /></TabsContent>
             <TabsContent value="reviews"><ReviewsTab /></TabsContent>
+            <TabsContent value="events"><EventsTab /></TabsContent>
             <TabsContent value="payments"><PaymentsTab /></TabsContent>
             <TabsContent value="business"><BusinessTab /></TabsContent>
             <TabsContent value="branding"><BrandingTab /></TabsContent>
@@ -164,6 +166,7 @@ function AdminInner() {
               ["content", FileText, "Content"],
               ["pages", Layers, "Pages"],
               ["reviews", Star, "Reviews"],
+              ["events", PartyPopper, "Events"],
               ["payments", CreditCard, "Pay"],
               ["business", Building2, "Business"],
               ["branding", Palette, "Brand"],
@@ -1401,6 +1404,145 @@ function ReviewDialog({ open, onClose, review }: { open: boolean; onClose: () =>
             </Button>
           )}
           <Button onClick={() => save.mutate()} disabled={save.isPending || !form.authorName || !form.body} data-testid="button-save-review">
+            {save.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============ EVENTS ============
+function EventsTab() {
+  const { data: eventsList = [] } = useQuery<Event[]>({ queryKey: ["/api/admin/events"] });
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Event | null>(null);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="space-y-4 mt-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Events</h1>
+          <p className="text-sm text-muted-foreground">Shown on the public Events page, soonest first. Past events drop off automatically.</p>
+        </div>
+        <Button onClick={() => { setEditing(null); setOpen(true); }} data-testid="button-add-event">
+          <Plus className="size-4 mr-1" /> Add
+        </Button>
+      </div>
+
+      {eventsList.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground border-dashed">No events yet. Add your first one.</Card>
+      ) : (
+        <div className="space-y-2">
+          {eventsList.map((ev) => (
+            <Card key={ev.id} className="p-4 bg-card hover-elevate" data-testid={`row-event-${ev.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display font-bold text-foreground">{ev.title}</span>
+                    {!ev.active && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
+                    {ev.date < today && <Badge variant="outline" className="text-[10px]">Past</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {formatDate(ev.date)}{ev.startTime ? ` · ${ev.startTime}` : ""}
+                  </div>
+                  {ev.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{ev.description}</p>}
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => { setEditing(ev); setOpen(true); }} data-testid={`button-edit-event-${ev.id}`}>
+                  <Pencil className="size-4" />
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <EventDialog key={editing?.id ?? "new"} open={open} onClose={() => setOpen(false)} event={editing} />
+    </div>
+  );
+}
+
+function EventDialog({ open, onClose, event }: { open: boolean; onClose: () => void; event: Event | null }) {
+  const { toast } = useToast();
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    title: event?.title ?? "",
+    description: event?.description ?? "",
+    date: event?.date ?? today,
+    startTime: event?.startTime ?? "",
+    imageUrl: event?.imageUrl ?? "",
+    active: event?.active ?? true,
+  });
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (event) {
+        return (await apiRequest("PATCH", `/api/admin/events/${event.id}`, form)).json();
+      }
+      return (await apiRequest("POST", "/api/admin/events", form)).json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/events"] });
+      toast({ title: event ? "Event updated" : "Event added" });
+      onClose();
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => (await apiRequest("DELETE", `/api/admin/events/${event!.id}`)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/events"] });
+      toast({ title: "Event deleted" });
+      onClose();
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>{event ? "Edit event" : "New event"}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Title</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Karaoke Championship Night" data-testid="input-event-title" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="input-event-date" />
+            </div>
+            <div>
+              <Label>Start time <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} data-testid="input-event-time" />
+            </div>
+          </div>
+          <div>
+            <Label>Description <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+            <Textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What's happening, any entry details…" data-testid="input-event-description" />
+          </div>
+          <div>
+            <Label>Image URL <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+            <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="/img/photos/…" data-testid="input-event-image" />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-card-border bg-card px-3 py-2">
+            <div>
+              <div className="text-sm font-medium">Show on website</div>
+              <div className="text-xs text-muted-foreground">Toggle off to hide</div>
+            </div>
+            <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} data-testid="switch-event-active" />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          {event && (
+            <Button variant="outline" onClick={() => remove.mutate()} disabled={remove.isPending} data-testid="button-delete-event">
+              <Trash2 className="size-4 mr-1" /> Delete
+            </Button>
+          )}
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.title || !form.date} data-testid="button-save-event">
             {save.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Save
           </Button>
         </DialogFooter>

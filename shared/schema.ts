@@ -136,6 +136,22 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, c
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
 
+// Events — one-off nights (karaoke championships, theme nights, live acts),
+// distinct from the bookable function room. Public page lists upcoming ones.
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  date: text("date").notNull(), // "YYYY-MM-DD"
+  startTime: text("start_time").notNull().default(""), // "HH:MM", optional
+  imageUrl: text("image_url").notNull().default(""),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at").notNull(),
+});
+export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;
+
 // Site pages — drives the nav. "core" rows point at built-in routes/components
 // (Home, Contact, etc.) and only their nav placement is editable here; "custom"
 // rows are admin-created pages rendered by the generic layout renderer, with
