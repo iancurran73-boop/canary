@@ -19,8 +19,8 @@ export default function Book() {
   const b = useBrand();
   useEffect(() => {
     applySeo({
-      title: `Book an Appointment · ${brand.name} ${business.address.city}`,
-      description: `Reserve your slot in under 60 seconds. Pick a service, choose a time and pay on the day. ${brand.name} in ${business.address.city}.`,
+      title: `Book the Room · ${brand.name} ${business.address.city}`,
+      description: `Book ${brand.name}'s private function room in under 60 seconds. Pick a date, tell us the occasion, and secure it with a £150 deposit — refunded as a bar tab on the night.`,
       path: "/book",
       jsonLd: [
         breadcrumb([
@@ -38,7 +38,7 @@ export default function Book() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-accent font-bold">Online booking</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05]">
-            Reserve your <span className="font-serif italic font-medium text-accent">appointment</span>
+            Get your <span className="font-serif italic font-medium text-accent">private room</span> booked
           </h1>
           <p className="mt-5 text-base sm:text-lg text-white/80 max-w-2xl mx-auto">
             {copy.bookingHeroSubtitle}
@@ -47,7 +47,7 @@ export default function Book() {
             {[
               { icon: CalendarCheck, label: "Real-time slots" },
               { icon: Shield, label: "Personal reply" },
-              { icon: CreditCard, label: "No deposit" },
+              { icon: CreditCard, label: "£150 deposit" },
               { icon: Clock, label: "Cancel free 48h" },
             ].map((b) => (
               <div key={b.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 flex items-center gap-2 ring-1 ring-white/15">

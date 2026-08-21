@@ -68,11 +68,11 @@ export default function About() {
           </div>
           <div className="lg:col-span-5">
             <div className="relative">
-              <div className="absolute -inset-4 bg-primary/15 rounded-3xl blur-2xl" />
+              <div className="absolute -inset-4 bg-primary/15 rounded-md blur-2xl" />
               <img
                 src={aboutImage}
                 alt={b.brandName}
-                className="relative rounded-2xl shadow-2xl w-full aspect-[4/5] object-cover"
+                className="relative rounded-md shadow-2xl w-full aspect-[4/5] object-cover"
                 loading="eager"
               />
             </div>
@@ -95,7 +95,7 @@ export default function About() {
               { icon: PartyPopper, title: "Any occasion", body: "Birthdays, hen dos, work parties, or no reason at all — the room works for it." },
               { icon: MapPin, title: "Heart of Newcastle", body: "A neon-lit corner pub that's become the city's go-to for a proper night out." },
             ].map((v) => (
-              <div key={v.title} className="bg-card border border-card-border rounded-2xl p-6 hover-elevate">
+              <div key={v.title} className="bg-card border border-card-border rounded-md p-6 hover-elevate">
                 <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                   <v.icon className="size-5" />
                 </div>

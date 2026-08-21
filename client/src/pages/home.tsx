@@ -10,7 +10,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { SiteShell } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Heart, Calendar, ArrowRight, Star, MapPin, Mic2, PartyPopper, Users } from "lucide-react";
+import { Sparkles, ArrowRight, Star, MapPin, Mic2, PartyPopper, Users } from "lucide-react";
 import { applySeo, localBusinessJsonLd, breadcrumb } from "@/lib/seo";
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
@@ -105,11 +105,11 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32 grid lg:grid-cols-12 gap-8 items-end min-h-[78vh] sm:min-h-[82vh]">
-          <div className="lg:col-span-7 text-white">
+          <div className="lg:col-span-8 text-white">
             <p className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs uppercase tracking-[0.24em] font-semibold bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full mb-5 ring-1 ring-white/20">
-              <Sparkles className="size-3 text-accent" /> Now booking · {business.address.city}
+              <Sparkles className="size-3 text-accent neon-flicker" /> Now booking · {business.address.city}
             </p>
-            <h1 className="font-display font-extrabold tracking-tight leading-[1.02] text-[clamp(2.5rem,7vw,5rem)]">
+            <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-[clamp(2.75rem,8vw,6rem)]">
               {heroTitle.split(" ").slice(0, -2).join(" ")}{" "}
               <span className="font-serif italic font-medium text-accent">
                 {heroTitle.split(" ").slice(-2).join(" ")}
@@ -120,7 +120,7 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/book">
-                <Button size="lg" className="rounded-full px-7 py-6 text-base font-semibold shadow-xl">
+                <Button size="lg" className="btn-ticket rounded-full px-8 py-6 text-base font-semibold shadow-xl">
                   Book the room <ArrowRight className="size-4 ml-1.5" />
                 </Button>
               </Link>
@@ -130,14 +130,39 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm text-white/80">
-              <span className="inline-flex items-center gap-1.5"><Users className="size-4 text-accent" /> Exclusive use — the room's yours</span>
-              <span className="inline-flex items-center gap-1.5"><Heart className="size-4 text-accent" /> £150 deposit — comes back as a bar tab</span>
-              <span className="inline-flex items-center gap-1.5"><Calendar className="size-4 text-accent" /> Online booking · 24/7</span>
+          </div>
+
+          {/* Floating ticket-stub card — fills the negative space with something
+              specific to the room, instead of leaving it empty background. */}
+          <div className="hidden lg:block lg:col-span-4">
+            <div className="ml-auto max-w-[260px] -rotate-2 bg-card/95 backdrop-blur border border-card-border shadow-2xl p-5">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-bold">Admit one crowd</p>
+              <p className="font-display text-2xl font-extrabold text-primary mt-1">Exclusive Room</p>
+              <div className="border-t border-dashed border-card-border my-3" />
+              <div className="space-y-1.5 text-xs text-foreground/85">
+                <div className="flex justify-between"><span className="text-muted-foreground">Deposit</span><span className="font-semibold">£150</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Refund</span><span className="font-semibold">Bar tab</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Nights</span><span className="font-semibold">Thu–Sat</span></div>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* MARQUEE TICKER */}
+      <div className="bg-accent text-accent-foreground py-2.5 overflow-hidden border-y border-accent/30">
+        <div className="flex whitespace-nowrap font-display font-bold uppercase tracking-[0.2em] text-xs sm:text-sm marquee-track">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-6 pr-6 shrink-0">
+              {["Karaoke", "Birthdays", "Hen Dos", "Work Parties", "Live Mic", "Singing", "Dancing", "Good Times"].map((tag) => (
+                <span key={tag} className="flex items-center gap-6">
+                  {tag} <span aria-hidden="true">★</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* WELCOME */}
       <section className="py-16 sm:py-24 bg-background">
@@ -169,7 +194,7 @@ export default function Home() {
             {HIGHLIGHTS.map((h) => {
               const Icon = h.icon;
               return (
-                <article key={h.title} className="bg-background text-foreground rounded-2xl overflow-hidden shadow-md flex flex-col">
+                <article key={h.title} className="bg-background text-foreground rounded-md overflow-hidden shadow-md flex flex-col">
                   <div className="p-6 sm:p-7 flex-1 flex flex-col">
                     <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                       <Icon className="size-6 text-primary" />
@@ -226,8 +251,8 @@ export default function Home() {
             </div>
           </div>
           <div className="relative">
-            <div className="absolute -inset-3 bg-accent/20 rounded-3xl blur-2xl" />
-            <div className="relative rounded-2xl shadow-2xl w-full aspect-[4/3] bg-gradient-to-br from-primary/40 via-accent/15 to-primary/50 flex flex-col items-center justify-center overflow-hidden p-8">
+            <div className="absolute -inset-3 bg-accent/20 rounded-md blur-2xl" />
+            <div className="relative rounded-md shadow-2xl w-full aspect-[4/3] bg-gradient-to-br from-primary/40 via-accent/15 to-primary/50 flex flex-col items-center justify-center overflow-hidden p-8">
               <Mic2 className="size-24 text-white/40" strokeWidth={1.2} />
               <p className="mt-4 text-white font-display font-bold text-xl text-center">Grab the mic</p>
               <p className="text-white/80 font-serif italic text-sm text-center">at {b.brandName}</p>
@@ -257,7 +282,7 @@ export default function Home() {
             </div>
             <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
               {reviews.map((r) => (
-                <figure key={r.id} className="bg-card border border-card-border rounded-2xl p-6 sm:p-7 shadow-sm">
+                <figure key={r.id} className="bg-card border border-card-border rounded-md p-6 sm:p-7 shadow-sm">
                   <div className="flex gap-0.5 text-accent mb-4">
                     {Array.from({ length: r.rating }).map((_, i) => (
                       <Star key={i} className="size-4 fill-accent" />

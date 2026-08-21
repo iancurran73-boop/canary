@@ -1,161 +1,71 @@
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&f[]=satoshi@400,500,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Sophie's Pampered Paws — brand tokens
-   Warm pink, gold and cream keep the look friendly, premium and pet-focused. */
-
-/* LIGHT MODE */
+/* The Singing Canary — brand tokens
+   Warm rose magenta + logo gold on a warm near-black, not the generic
+   cyan-on-violet neon pattern. This is a single dark-mode-first theme —
+   there's no light/dark toggle, so only :root is defined.
+   BrandThemeProvider (runtime) overrides --primary/--accent/--background/
+   --foreground/--primary-foreground/--muted/--border from the DB-backed
+   tenant config once it loads; everything below is the static fallback
+   these values already ship as, plus the tokens the runtime never touches
+   (card, secondary, sidebar, destructive, shadows, fonts). */
 :root {
-  --button-outline: rgba(60, 14, 46, 0.12);
-  --badge-outline: rgba(60, 14, 46, 0.06);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(60, 14, 46, 0.04);
-  --elevate-2: rgba(60, 14, 46, 0.10);
-  --background: 30 60% 98%;            /* SPP warm cream */
-  --foreground: 240 30% 14%;           /* SPP deep navy ink */
-  --border: 30 18% 88%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 30% 14%;
-  --card-border: 30 18% 90%;
-  --sidebar: 240 30% 14%;              /* deep navy ink, matches body foreground */
-  --sidebar-foreground: 35 40% 96%;
-  --sidebar-border: 240 20% 22%;
-  --sidebar-primary: 338 79% 56%;      /* SPP pink */
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 25% 22%;
-  --sidebar-accent-foreground: 35 40% 96%;
-  --sidebar-ring: 338 79% 56%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 30% 14%;
-  --popover-border: 30 18% 88%;
-  --primary: 338 79% 56%;              /* SPP signature pink */
-  --primary-foreground: 0 0% 100%;
-  --secondary: 40 81% 52%;             /* SPP warm gold */
-  --secondary-foreground: 240 30% 14%;
-  --muted: 338 70% 96%;                /* pink-light wash */
-  --muted-foreground: 0 0% 40%;
-  --accent: 40 81% 52%;                /* SPP gold accent */
-  --accent-foreground: 240 30% 14%;
-  --destructive: 0 75% 45%;
-  --destructive-foreground: 0 0% 100%;
-  --input: 335 30% 82%;
-  --ring: 338 79% 56%;
-  --chart-1: 320 92% 50%;
-  --chart-2: 178 45% 32%;
-  --chart-3: 280 50% 78%;
-  --chart-4: 348 65% 38%;
-  --chart-5: 285 45% 18%;
-  --font-sans: 'Satoshi', system-ui, sans-serif;
-  --font-display: 'Cabinet Grotesk', 'Satoshi', sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-mono: ui-monospace, Menlo, monospace;
-  --radius: 0.625rem;
-  --shadow-2xs: 0 1px 2px hsl(285 45% 18% / 0.04);
-  --shadow-xs: 0 1px 3px hsl(285 45% 18% / 0.06);
-  --shadow-sm: 0 2px 6px hsl(285 45% 18% / 0.08);
-  --shadow: 0 4px 12px hsl(285 45% 18% / 0.08);
-  --shadow-md: 0 6px 20px hsl(285 45% 18% / 0.10);
-  --shadow-lg: 0 12px 32px hsl(285 45% 18% / 0.12);
-  --shadow-xl: 0 20px 48px hsl(285 45% 18% / 0.16);
-  --shadow-2xl: 0 32px 64px hsl(285 45% 18% / 0.20);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-
-  /* Fallback for older browsers */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(
-    from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(
-    from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --primary-border: hsl(var(--primary));
-  --primary-border: hsl(
-    from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(
-    from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --muted-border: hsl(var(--muted));
-  --muted-border: hsl(
-    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --accent-border: hsl(var(--accent));
-  --accent-border: hsl(
-    from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
-  --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(
-    from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-}
-
-.dark {
   --button-outline: rgba(255, 255, 255, 0.10);
   --badge-outline: rgba(255, 255, 255, 0.05);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255, 255, 255, 0.05);
   --elevate-2: rgba(255, 255, 255, 0.10);
-  --background: 285 35% 10%;
-  --foreground: 35 30% 95%;
-  --border: 330 20% 18%;
-  --card: 330 28% 11%;
-  --card-foreground: 35 30% 95%;
-  --card-border: 330 22% 16%;
-  --sidebar: 330 32% 6%;
-  --sidebar-foreground: 35 30% 95%;
-  --sidebar-border: 330 25% 14%;
-  --sidebar-primary: 320 92% 60%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 330 22% 16%;
-  --sidebar-accent-foreground: 35 30% 95%;
-  --sidebar-ring: 320 92% 60%;
-  --popover: 330 28% 12%;
-  --popover-foreground: 35 30% 95%;
-  --popover-border: 330 22% 18%;
-  --primary: 320 92% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 178 45% 36%;
-  --secondary-foreground: 35 30% 95%;
-  --muted: 330 22% 16%;
-  --muted-foreground: 35 12% 70%;
-  --accent: 280 50% 78%;
-  --accent-foreground: 285 45% 18%;
-  --destructive: 0 70% 48%;
-  --destructive-foreground: 0 0% 100%;
-  --input: 330 22% 22%;
-  --ring: 320 92% 60%;
-  --chart-1: 320 92% 60%;
-  --chart-2: 178 45% 50%;
-  --chart-3: 280 50% 78%;
-  --chart-4: 348 65% 55%;
-  --chart-5: 35 30% 95%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
-  --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
-  --shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0);
-  --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0);
-  --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0);
-  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --background: 15 21% 7%;             /* warm near-black */
+  --foreground: 32 44% 93%;            /* warm cream */
+  --border: 330 25% 22%;
+  --card: 330 31% 13%;                 /* burgundy-plum surface */
+  --card-foreground: 32 44% 93%;
+  --card-border: 330 25% 20%;
+  --sidebar: 15 25% 5%;
+  --sidebar-foreground: 32 44% 93%;
+  --sidebar-border: 330 25% 16%;
+  --sidebar-primary: 330 79% 56%;
+  --sidebar-primary-foreground: 32 44% 95%;
+  --sidebar-accent: 330 31% 13%;
+  --sidebar-accent-foreground: 32 44% 93%;
+  --sidebar-ring: 330 79% 56%;
+  --popover: 330 31% 13%;
+  --popover-foreground: 32 44% 93%;
+  --popover-border: 330 25% 20%;
+  --primary: 330 79% 56%;              /* warm rose magenta */
+  --primary-foreground: 32 44% 95%;
+  --secondary: 174 77% 40%;            /* jewel-tone teal — cool counterpoint to gold */
+  --secondary-foreground: 32 44% 95%;
+  --muted: 330 31% 13%;
+  --muted-foreground: 30 20% 75%;
+  --accent: 45 94% 49%;                /* logo gold */
+  --accent-foreground: 20 20% 8%;
+  --destructive: 6 72% 50%;
+  --destructive-foreground: 32 44% 95%;
+  --input: 330 20% 28%;
+  --ring: 330 79% 56%;
+  --chart-1: 330 79% 56%;
+  --chart-2: 45 94% 49%;
+  --chart-3: 174 77% 40%;
+  --chart-4: 83 78% 56%;
+  --chart-5: 32 44% 93%;
+  --font-sans: 'Work Sans', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-serif: 'Bricolage Grotesque', sans-serif; /* italic accent flourish reuses the display face */
+  --font-mono: ui-monospace, Menlo, monospace;
+  --radius: 0.375rem;
+  --shadow-2xs: 0 1px 2px hsl(15 21% 3% / 0.20);
+  --shadow-xs: 0 1px 3px hsl(15 21% 3% / 0.24);
+  --shadow-sm: 0 2px 6px hsl(15 21% 3% / 0.28);
+  --shadow: 0 4px 12px hsl(15 21% 3% / 0.32);
+  --shadow-md: 0 6px 20px hsl(15 21% 3% / 0.36);
+  --shadow-lg: 0 12px 32px hsl(15 21% 3% / 0.42);
+  --shadow-xl: 0 20px 48px hsl(15 21% 3% / 0.50);
+  --shadow-2xl: 0 32px 64px hsl(15 21% 3% / 0.60);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
 
   /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -209,6 +119,69 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/**
+ * Site-specific texture + motion — kept out of the generic component system
+ * on purpose, these are what make the neon-bar identity feel considered
+ * rather than a flat gradient-and-glow template.
+ */
+
+/* Fixed full-bleed film-grain texture, faint and site-wide. Pure SVG noise —
+   no image request, no bundle weight. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Irregular neon-tube flicker — deliberately uneven timing, not a smooth
+   pulse/glow-blur loop (the smooth version is the generic-AI tell). */
+@keyframes neon-flicker {
+  0%, 3%, 6%, 100% { opacity: 1; }
+  4% { opacity: 0.55; }
+  5% { opacity: 0.85; }
+  47% { opacity: 1; }
+  48% { opacity: 0.4; }
+  49% { opacity: 1; }
+  89% { opacity: 1; }
+  90% { opacity: 0.65; }
+  91% { opacity: 1; }
+}
+.neon-flicker {
+  animation: neon-flicker 7s infinite;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee-scroll 28s linear infinite;
+}
+
+/* Ticket-stub button — circular notches cut from the left/right edges,
+   like a torn admission ticket, instead of a generic gradient pill. */
+.btn-ticket {
+  position: relative;
+}
+.btn-ticket::before,
+.btn-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: hsl(var(--background));
+  border-radius: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.btn-ticket::before { left: -6px; }
+.btn-ticket::after { right: -6px; }
 
 /**
  * Using the elevate system.

@@ -99,6 +99,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <div className="grain-overlay" aria-hidden="true" />
       {/* Top utility bar */}
       <div className="hidden md:block bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-xs opacity-90" style={{ background: `hsl(${brand.colors.primary})`, color: `hsl(${brand.colors.primaryFg})` }}>
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
@@ -128,7 +129,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <header className={`sticky top-0 z-40 bg-primary text-primary-foreground transition-shadow ${scrolled ? "shadow-xl" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 py-3 sm:py-4">
           <Link href="/" className="flex items-center gap-3 sm:gap-5 group shrink-0" data-testid="link-home">
-            <BrandMark className="h-10 sm:h-12 lg:h-14 w-auto text-white drop-shadow-md transition-transform group-hover:scale-[1.02]" />
+            <BrandMark className="h-28 sm:h-32 lg:h-40 w-auto rounded-full text-white drop-shadow-md transition-transform group-hover:scale-[1.02]" />
             <div className="hidden md:block leading-tight">
               <div className="font-display font-extrabold text-white text-xl lg:text-2xl tracking-tight">{b.brandName}</div>
               <div className="text-xs lg:text-sm italic font-serif text-white/90 mt-0.5">{b.tagline}</div>
@@ -188,7 +189,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               ))}
               <Link href="/book" className="mt-2">
                 <Button className="w-full rounded-full font-semibold py-6 text-base bg-white/15 text-white hover:bg-white/25">
-                  Book an appointment <ArrowRight className="size-4 ml-1" />
+                  Book the room <ArrowRight className="size-4 ml-1" />
                 </Button>
               </Link>
             </nav>
@@ -205,7 +206,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 px-3 pb-3 pt-2 bg-gradient-to-t from-background via-background/95 to-transparent">
           <Link href="/book">
             <Button className="w-full rounded-full py-6 text-base font-semibold shadow-xl" data-testid="button-book-mobile-cta">
-              Book your appointment <ArrowRight className="size-4 ml-1.5" />
+              Book the room <ArrowRight className="size-4 ml-1.5" />
             </Button>
           </Link>
         </div>
@@ -221,15 +222,15 @@ function SiteFooter() {
   const nav = usePages();
   const footerHours = useHours();
   return (
-    <footer className="bg-[hsl(var(--foreground))] text-[hsl(35_40%_92%)] mt-16 sm:mt-24 pb-28 lg:pb-12" style={{ background: `hsl(${brand.colors.foreground})` }}>
+    <footer className="bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] mt-16 sm:mt-24 pb-28 lg:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
         <div>
-          <BrandMark className="h-12 w-auto text-white mb-4" />
+          <BrandMark className="h-24 w-auto rounded-full text-white mb-4" />
           <p className="font-display font-bold text-lg text-white">{b.brandName}</p>
           <p className="font-serif italic text-sm text-white/70 mt-1">{b.tagline}</p>
         </div>
         <div>
-          <h4 className="font-display font-bold text-sm uppercase tracking-[0.18em] text-accent mb-3">Studio</h4>
+          <h4 className="font-display font-bold text-sm uppercase tracking-[0.18em] text-accent mb-3">Find us</h4>
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
               <MapPin className="size-4 mt-0.5 shrink-0 text-accent" />

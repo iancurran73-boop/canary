@@ -40,7 +40,7 @@ export default function Confirmed() {
         ) : (
           <>
             <h1 className="font-display text-3xl font-bold text-foreground">Request received.</h1>
-            <p className="text-muted-foreground mt-2">{b.ownerName} will review and confirm your appointment shortly. We'll email <strong>{booking.customerEmail}</strong> as soon as it's locked in.</p>
+            <p className="text-muted-foreground mt-2">{b.ownerName} will review and confirm your booking shortly. We'll email <strong>{booking.customerEmail}</strong> as soon as it's locked in.</p>
           </>
         )}
 

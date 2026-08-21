@@ -102,7 +102,7 @@ export default function Gallery() {
             {visible.map((item, i) => (
               <figure
                 key={item.src + i}
-                className={`group relative overflow-hidden rounded-2xl bg-muted ${i % 7 === 0 ? "sm:col-span-2 sm:row-span-2 aspect-square" : "aspect-[3/4]"}`}
+                className={`group relative overflow-hidden rounded-md bg-muted ${i % 7 === 0 ? "sm:col-span-2 sm:row-span-2 aspect-square" : "aspect-[3/4]"}`}
               >
                 <img
                   src={item.src}

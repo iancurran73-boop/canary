@@ -18,10 +18,16 @@ export interface BrandConfig {
   phone: string;
   colors: {
     primary: string;
+    primaryFg: string;
     accent: string;
+    accentFg: string;
     tertiary: string;
+    tertiaryFg: string;
     background: string;
     foreground: string;
+    muted: string;
+    mutedFg: string;
+    border: string;
   };
   fonts: {
     display: string;
@@ -44,10 +50,16 @@ const defaults: BrandConfig = {
   phone: config.business.phoneDisplay || config.business.phone,
   colors: {
     primary: config.brand.colors.primary,
+    primaryFg: config.brand.colors.primaryFg,
     accent: config.brand.colors.accent,
+    accentFg: config.brand.colors.accentFg,
     tertiary: config.brand.colors.tertiary,
+    tertiaryFg: config.brand.colors.tertiaryFg,
     background: config.brand.colors.background,
     foreground: config.brand.colors.foreground,
+    muted: config.brand.colors.muted,
+    mutedFg: config.brand.colors.mutedFg,
+    border: config.brand.colors.border,
   },
   fonts: {
     display: config.brand.fonts.display,

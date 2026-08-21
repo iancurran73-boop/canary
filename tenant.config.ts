@@ -18,25 +18,27 @@ const config: TenantConfig = {
     logoPath: "/img/logo.png",
     favicon: "/favicon.png",
     colors: {
-      // HSL "H S% L%" — neon bar palette: electric magenta + cyan surge on a
-      // deep charcoal/violet base, volt green reserved for sparing highlights.
-      primary: "312 100% 50%",   // electric magenta ~ #ff00cc
-      primaryFg: "0 0% 0%",
-      accent: "180 100% 50%",    // cyan surge       ~ #00ffff
-      accentFg: "0 0% 0%",
-      tertiary: "111 100% 54%",  // volt green       ~ #39ff14 — use sparingly
-      tertiaryFg: "0 0% 0%",
-      background: "250 20% 6%",  // deep charcoal    ~ #0d0c12
-      foreground: "240 14% 90%", // crisp off-white  ~ #e2e2e9
-      muted: "257 41% 12%",      // dark violet surface ~ #19122b
-      mutedFg: "257 15% 70%",
-      border: "257 30% 22%",
+      // HSL "H S% L%" — warmed-up neon: rose magenta + logo-gold on a warm
+      // near-black (not violet-black — pure cyan-on-violet neon reads as a
+      // generic AI-template signature, so this deliberately avoids it).
+      primary: "330 79% 56%",    // warm rose magenta ~ #e8368f
+      primaryFg: "32 44% 95%",
+      accent: "45 94% 49%",      // logo gold         ~ #f2b807
+      accentFg: "20 20% 8%",
+      tertiary: "83 78% 56%",    // soft lime         ~ #a3e635 — use sparingly
+      tertiaryFg: "20 20% 8%",
+      background: "15 21% 7%",   // warm near-black    ~ #17110f
+      foreground: "32 44% 93%",  // warm cream         ~ #f4ece3
+      muted: "330 31% 13%",      // burgundy-plum surface ~ #2a1620
+      mutedFg: "30 20% 75%",
+      border: "330 25% 22%",
     },
     fonts: {
-      // Bungee carries the neon poster/party feel; Inter keeps body copy
-      // actually readable against a bold display face.
-      display: "Bungee",
-      body: "Inter",
+      // Bricolage Grotesque: hand-touched geometric display with neon energy
+      // that still reads designed, not generated. Work Sans keeps body copy
+      // clean without falling into the Inter/Poppins AI-default trap.
+      display: "Bricolage Grotesque",
+      body: "Work Sans",
     },
   },
 

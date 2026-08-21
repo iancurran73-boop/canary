@@ -83,7 +83,7 @@ export default function HowItWorks() {
                     </div>
                     {i < steps.length - 1 && <div className="w-px flex-1 min-h-6 bg-border mt-2" />}
                   </div>
-                  <div className="bg-card border border-card-border rounded-2xl p-5 sm:p-6 flex-1 flex items-start gap-4">
+                  <div className="bg-card border border-card-border rounded-md p-5 sm:p-6 flex-1 flex items-start gap-4">
                     <div className="hidden sm:grid shrink-0 size-10 rounded-xl bg-primary/10 text-primary place-items-center">
                       <Icon className="size-5" />
                     </div>
@@ -108,7 +108,7 @@ export default function HowItWorks() {
             {PHOTO_SLOTS.map((slot) => {
               const url = c(slot.key, "");
               return (
-                <div key={slot.key} className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
+                <div key={slot.key} className="rounded-md overflow-hidden border border-card-border shadow-sm bg-card">
                   {url ? (
                     <img src={url} alt={slot.caption} className="w-full aspect-[4/5] object-cover" loading="lazy" />
                   ) : (

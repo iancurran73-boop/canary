@@ -77,7 +77,7 @@ function StepsLayout({ slug, title, intro }: { slug: string; title: string; intr
                       <div className="size-11 sm:size-12 rounded-full bg-primary/10 text-primary grid place-items-center font-display font-extrabold text-lg">{i + 1}</div>
                       {i < steps.length - 1 && <div className="w-px flex-1 min-h-6 bg-border mt-2" />}
                     </div>
-                    <div className="bg-card border border-card-border rounded-2xl p-5 sm:p-6 flex-1 flex items-start gap-4">
+                    <div className="bg-card border border-card-border rounded-md p-5 sm:p-6 flex-1 flex items-start gap-4">
                       <div className="hidden sm:grid shrink-0 size-10 rounded-xl bg-primary/10 text-primary place-items-center"><Icon className="size-5" /></div>
                       <p className="text-base text-foreground/85 leading-relaxed">{step}</p>
                     </div>
@@ -92,7 +92,7 @@ function StepsLayout({ slug, title, intro }: { slug: string; title: string; intr
         <section className="py-16 sm:py-24 bg-muted">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 grid sm:grid-cols-3 gap-5">
             {photos.filter(Boolean).map((url, i) => (
-              <div key={i} className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
+              <div key={i} className="rounded-md overflow-hidden border border-card-border shadow-sm bg-card">
                 <img src={url} alt={title} className="w-full aspect-[4/5] object-cover" loading="lazy" />
               </div>
             ))}
@@ -120,7 +120,7 @@ function StoryLayout({ slug, title, intro }: { slug: string; title: string; intr
           </div>
           {image && (
             <div className="lg:col-span-5">
-              <img src={image} alt={title} className="rounded-2xl shadow-2xl w-full aspect-[4/5] object-cover" loading="eager" />
+              <img src={image} alt={title} className="rounded-md shadow-2xl w-full aspect-[4/5] object-cover" loading="eager" />
             </div>
           )}
         </div>
@@ -147,7 +147,7 @@ function SimpleLayout({ slug, title, intro }: { slug: string; title: string; int
       <Hero title={title} intro={intro} />
       <section className="py-16 sm:py-20 bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          {image && <img src={image} alt={title} className="rounded-2xl shadow-lg w-full aspect-video object-cover mb-10" loading="eager" />}
+          {image && <img src={image} alt={title} className="rounded-md shadow-lg w-full aspect-video object-cover mb-10" loading="eager" />}
           {body && <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">{body}</p>}
         </div>
       </section>
@@ -170,7 +170,7 @@ function GalleryLayout({ slug, title, intro }: { slug: string; title: string; in
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {photos.map((url, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
+                <div key={i} className="rounded-md overflow-hidden border border-card-border shadow-sm bg-card">
                   <img src={url} alt={`${title} ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                 </div>
               ))}
@@ -233,7 +233,7 @@ function TestimonialsLayout({ title, intro }: { title: string; intro: string }) 
           ) : (
             <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
               {reviews.map((r) => (
-                <figure key={r.id} className="bg-card border border-card-border rounded-2xl p-6 sm:p-7 shadow-sm">
+                <figure key={r.id} className="bg-card border border-card-border rounded-md p-6 sm:p-7 shadow-sm">
                   <div className="flex gap-0.5 text-accent mb-4">
                     {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="size-4 fill-accent" />)}
                   </div>

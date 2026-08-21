@@ -91,7 +91,7 @@ function AdminInner() {
               <ChevronLeft className="size-5" />
             </Link>
             <div className="flex items-center gap-2">
-              <BrandMark className="h-12 w-auto" />
+              <BrandMark className="h-14 w-auto rounded-full" />
               <div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">Admin</div>
                 <div className="font-display font-bold text-sm leading-tight">{brand.shortName}</div>
@@ -210,7 +210,7 @@ function TodayTab() {
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="font-display text-3xl font-bold text-foreground mt-1">Hi {business.ownerName.split(" ")[0]}.</h1>
-        <p className="text-muted-foreground">{todays.length === 0 ? "No appointments today — enjoy the breather." : `You've got ${todays.length} appointment${todays.length === 1 ? "" : "s"} today.`}</p>
+        <p className="text-muted-foreground">{todays.length === 0 ? "No bookings today — enjoy the breather." : `You've got ${todays.length} booking${todays.length === 1 ? "" : "s"} today.`}</p>
       </div>
 
       {/* Stats */}
@@ -435,7 +435,7 @@ function ScheduleTab() {
     <div className="space-y-5 mt-5">
       <div>
         <h1 className="font-display text-2xl font-bold">Schedule</h1>
-        <p className="text-sm text-muted-foreground">All upcoming appointments.</p>
+        <p className="text-sm text-muted-foreground">All upcoming bookings.</p>
       </div>
       {dates.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground border-dashed">No upcoming bookings.</Card>
@@ -1654,14 +1654,14 @@ function PaymentsTab() {
 
 // Curated display + body font pairs (Google Fonts CSS2 family names).
 const FONT_PAIRS: { display: string; body: string }[] = [
-  { display: "Fraunces", body: "Nunito" },
+  { display: "Bricolage Grotesque", body: "Work Sans" },
+  { display: "Big Shoulders Display", body: "Archivo" },
+  { display: "Unbounded", body: "Manrope" },
+  { display: "Fraunces", body: "Instrument Sans" },
   { display: "Playfair Display", body: "Inter" },
   { display: "DM Serif Display", body: "DM Sans" },
   { display: "Cormorant Garamond", body: "Montserrat" },
   { display: "Lora", body: "Source Sans 3" },
-  { display: "Bricolage Grotesque", body: "Inter" },
-  { display: "Instrument Serif", body: "Inter" },
-  { display: "Work Sans", body: "Work Sans" },
 ];
 
 // HSL "H S% L%" → "#rrggbb"
@@ -1841,14 +1841,14 @@ function EmailsTab() {
         <div className="border-t border-border pt-4 space-y-4">
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
-              <Label className="text-sm">Send appointment reminders</Label>
-              <p className="text-xs text-muted-foreground">Emails the customer ahead of their appointment. Uses the connection above.</p>
+              <Label className="text-sm">Send booking reminders</Label>
+              <p className="text-xs text-muted-foreground">Emails the customer ahead of their booking. Uses the connection above.</p>
             </div>
             <Switch checked={form.remindersEnabled} onCheckedChange={(v) => setForm({ ...form, remindersEnabled: v })} data-testid="switch-reminders-enabled" />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reminder-hours">Hours before appointment</Label>
+            <Label htmlFor="reminder-hours">Hours before booking</Label>
             <Input
               id="reminder-hours"
               type="number"
@@ -1963,7 +1963,7 @@ function EmailsTab() {
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="reminder">
-            <AccordionTrigger data-testid="accordion-reminder">Appointment reminder</AccordionTrigger>
+            <AccordionTrigger data-testid="accordion-reminder">Booking reminder</AccordionTrigger>
             <AccordionContent className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="reminder-subject">Subject</Label>
@@ -2094,7 +2094,14 @@ function BusinessTab() {
 
 // ============ BRANDING ============
 type BrandingConfig = {
-  colors: { primary: string; accent: string; background: string; foreground: string };
+  colors: {
+    primary: string; primaryFg: string;
+    accent: string; accentFg: string;
+    tertiary: string; tertiaryFg: string;
+    background: string; foreground: string;
+    muted: string; mutedFg: string;
+    border: string;
+  };
   fonts: { display: string; body: string };
 };
 
@@ -2180,9 +2187,16 @@ function BrandingTab() {
 
         <div className="grid grid-cols-2 gap-3">
           {colorField("primary", "Primary")}
+          {colorField("primaryFg", "Primary text")}
           {colorField("accent", "Accent")}
+          {colorField("accentFg", "Accent text")}
+          {colorField("tertiary", "Tertiary (sparing highlights)")}
+          {colorField("tertiaryFg", "Tertiary text")}
           {colorField("background", "Background")}
           {colorField("foreground", "Foreground (text)")}
+          {colorField("muted", "Card / surface")}
+          {colorField("mutedFg", "Card text (muted)")}
+          {colorField("border", "Border")}
         </div>
 
         <Button onClick={() => save.mutate(form)} disabled={save.isPending} data-testid="button-save-branding">
@@ -2207,8 +2221,9 @@ function BrandingTab() {
             The quick brown fox jumps over the lazy dog.
           </div>
           <div className="flex gap-2 mt-1">
-            <span style={{ background: `hsl(${form.colors.primary})`, color: "#fff", padding: "0.4rem 0.9rem", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 600 }}>Button</span>
-            <span style={{ background: `hsl(${form.colors.accent})`, color: "#000", padding: "0.4rem 0.9rem", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 600 }}>Accent</span>
+            <span style={{ background: `hsl(${form.colors.primary})`, color: `hsl(${form.colors.primaryFg})`, padding: "0.4rem 0.9rem", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 600 }}>Button</span>
+            <span style={{ background: `hsl(${form.colors.accent})`, color: `hsl(${form.colors.accentFg})`, padding: "0.4rem 0.9rem", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 600 }}>Accent</span>
+            <span style={{ background: `hsl(${form.colors.tertiary})`, color: `hsl(${form.colors.tertiaryFg})`, padding: "0.4rem 0.9rem", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 600 }}>Tertiary</span>
           </div>
         </div>
       </Card>
@@ -2260,7 +2275,7 @@ function PolicyTab() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="policy-hours">Free-cancellation window (hours before appointment)</Label>
+          <Label htmlFor="policy-hours">Free-cancellation window (hours before booking)</Label>
           <Input
             id="policy-hours"
             type="number"

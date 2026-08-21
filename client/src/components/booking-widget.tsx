@@ -299,7 +299,7 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
 
 function Wrapper({ children, embedded }: { children: React.ReactNode; embedded: boolean }) {
   return (
-    <div className={`bg-card text-card-foreground rounded-2xl border border-card-border shadow-xl overflow-hidden ${embedded ? "" : "max-w-xl mx-auto"}`}>
+    <div className={`bg-card text-card-foreground rounded-md border border-card-border shadow-xl overflow-hidden ${embedded ? "" : "max-w-xl mx-auto"}`}>
       {children}
     </div>
   );

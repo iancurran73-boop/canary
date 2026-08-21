@@ -663,10 +663,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   const readBranding = async () => ({
     colors: {
       primary: await val("brand.color.primary", tc.brand.colors.primary),
+      primaryFg: await val("brand.color.primaryFg", tc.brand.colors.primaryFg),
       accent: await val("brand.color.accent", tc.brand.colors.accent),
+      accentFg: await val("brand.color.accentFg", tc.brand.colors.accentFg),
       tertiary: await val("brand.color.tertiary", tc.brand.colors.tertiary),
+      tertiaryFg: await val("brand.color.tertiaryFg", tc.brand.colors.tertiaryFg),
       background: await val("brand.color.background", tc.brand.colors.background),
       foreground: await val("brand.color.foreground", tc.brand.colors.foreground),
+      muted: await val("brand.color.muted", tc.brand.colors.muted),
+      mutedFg: await val("brand.color.mutedFg", tc.brand.colors.mutedFg),
+      border: await val("brand.color.border", tc.brand.colors.border),
     },
     fonts: {
       display: await val("brand.font.display", tc.brand.fonts.display),
@@ -713,10 +719,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const schema = z.object({
       colors: z.object({
         primary: z.string().optional(),
+        primaryFg: z.string().optional(),
         accent: z.string().optional(),
+        accentFg: z.string().optional(),
         tertiary: z.string().optional(),
+        tertiaryFg: z.string().optional(),
         background: z.string().optional(),
         foreground: z.string().optional(),
+        muted: z.string().optional(),
+        mutedFg: z.string().optional(),
+        border: z.string().optional(),
       }).optional(),
       fonts: z.object({
         display: z.string().optional(),
@@ -727,10 +739,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
     const { colors, fonts } = parse.data;
     if (colors?.primary !== undefined) await storage.setContentValue("brand.color.primary", colors.primary);
+    if (colors?.primaryFg !== undefined) await storage.setContentValue("brand.color.primaryFg", colors.primaryFg);
     if (colors?.accent !== undefined) await storage.setContentValue("brand.color.accent", colors.accent);
+    if (colors?.accentFg !== undefined) await storage.setContentValue("brand.color.accentFg", colors.accentFg);
     if (colors?.tertiary !== undefined) await storage.setContentValue("brand.color.tertiary", colors.tertiary);
+    if (colors?.tertiaryFg !== undefined) await storage.setContentValue("brand.color.tertiaryFg", colors.tertiaryFg);
     if (colors?.background !== undefined) await storage.setContentValue("brand.color.background", colors.background);
     if (colors?.foreground !== undefined) await storage.setContentValue("brand.color.foreground", colors.foreground);
+    if (colors?.muted !== undefined) await storage.setContentValue("brand.color.muted", colors.muted);
+    if (colors?.mutedFg !== undefined) await storage.setContentValue("brand.color.mutedFg", colors.mutedFg);
+    if (colors?.border !== undefined) await storage.setContentValue("brand.color.border", colors.border);
     if (fonts?.display !== undefined) await storage.setContentValue("brand.font.display", fonts.display);
     if (fonts?.body !== undefined) await storage.setContentValue("brand.font.body", fonts.body);
     res.json({ ok: true, ...(await readBranding()) });

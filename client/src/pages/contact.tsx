@@ -79,7 +79,7 @@ export default function Contact() {
       <section className="py-10 sm:py-14 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 space-y-5">
-            <div className="bg-card border border-card-border rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+            <div className="bg-card border border-card-border rounded-md p-6 sm:p-7 shadow-sm space-y-4">
               <div className="flex items-start gap-3">
                 <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><Phone className="size-5" /></div>
                 <div>
@@ -112,7 +112,7 @@ export default function Contact() {
               )}
             </div>
 
-            <div className="bg-card border border-card-border rounded-2xl p-6 sm:p-7 shadow-sm">
+            <div className="bg-card border border-card-border rounded-md p-6 sm:p-7 shadow-sm">
               <div className="flex items-start gap-3">
                 <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><Clock className="size-5" /></div>
                 <div className="flex-1">
@@ -143,7 +143,7 @@ export default function Contact() {
           </div>
 
           <div className="lg:col-span-7 space-y-5">
-            <div className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
+            <div className="rounded-md overflow-hidden border border-card-border shadow-sm bg-card">
               <img
                 src={venueImage}
                 alt={b.brandName}
