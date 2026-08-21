@@ -1,169 +1,107 @@
 /**
  * tenant.config.ts
  * ─────────────────────────
- * Sophie's Pampered Paws — In-Home Dog Grooming, Cramlington & Northumberland.
- * Populated from the original SPP_Booking_App_v4 source.
- * Annabelle can edit all visible copy via the admin Content tab.
+ * The Singing Canary — karaoke pub & function room, Newcastle.
+ * Forked from the sophiespamperedpaws booking platform.
+ * Update the // TBC values below with real details before going live.
  */
 
 import type { TenantConfig } from "./shared/tenant-types";
 
 const config: TenantConfig = {
   brand: {
-    name: "Sophie's Pampered Paws",
-    shortName: "Pampered Paws",
-    tagline: "Your dog deserves pampered perfection",
-    domain: "sophiespamperedpaws.co.uk",
-    instagram: "sophiespamperedpaws", // TBC — Annabelle to confirm
-    logoPath: "",
+    name: "The Singing Canary",
+    shortName: "The Canary",
+    tagline: "Singing · Dancing · Good Times",
+    domain: "thesingingcanary.co.uk", // TBC — confirm real domain
+    instagram: "", // TBC
+    logoPath: "/img/logo.png",
     favicon: "/favicon.png",
     colors: {
-      // HSL "H S% L%" — taken from original SPP CSS variables:
-      //   --pink #e8387a   --gold #e8a820   --green #2db87a   --cream #fef9f5
-      primary: "338 79% 56%",        // signature pink   ~ #e8387a
-      primaryFg: "0 0% 100%",
-      accent: "40 81% 52%",          // warm gold accent ~ #e8a820
-      accentFg: "240 30% 14%",
-      background: "30 60% 98%",      // warm cream       ~ #fef9f5
-      foreground: "240 30% 14%",     // near-black ink   ~ #1a1a2e
-      muted: "338 70% 96%",          // pink-light wash  ~ #fff0f5
-      mutedFg: "0 0% 40%",
-      border: "335 50% 88%",         // soft pink border ~ #f0d0e0
+      // HSL "H S% L%" — sampled directly from the real logo and venue photo.
+      primary: "42 100% 50%",    // canary gold      ~ #ffb100
+      primaryFg: "0 0% 8%",
+      accent: "330 100% 50%",    // hot pink/magenta ~ #fd007f
+      accentFg: "0 0% 8%",
+      tertiary: "190 100% 50%",  // neon cyan-blue   ~ #00d4ff
+      tertiaryFg: "0 0% 8%",
+      background: "240 14% 5%",  // near-black       ~ #0c0c10
+      foreground: "44 35% 94%",  // warm off-white   ~ #f5f2ea
+      muted: "240 10% 12%",
+      mutedFg: "240 5% 65%",
+      border: "240 10% 20%",
     },
     fonts: {
-      // Nunito carries the original SPP feel; Fraunces is a warm soft serif
-      // counterpoint for display headings. Annabelle can swap later.
-      display: "Fraunces",
-      body: "Nunito",
+      // Bungee carries the neon poster/party feel; Inter keeps body copy
+      // actually readable against a bold display face.
+      display: "Bungee",
+      body: "Inter",
     },
   },
 
   business: {
-    ownerName: "Annabelle",
-    phone: "+440000000000",            // TBC
+    ownerName: "The Singing Canary Team", // TBC
+    phone: "+440000000000",               // TBC
     phoneDisplay: "TBC",
-    email: "hello@sophiespamperedpaws.co.uk", // TBC
+    email: "hello@thesingingcanary.co.uk", // TBC
     address: {
-      line1: "In-home service",
-      city: "Cramlington",
-      postcode: "NE23",
+      line1: "TBC",
+      city: "Newcastle upon Tyne",
+      postcode: "TBC",
       country: "United Kingdom",
     },
-    mapsUrl: "https://maps.google.com/?q=Cramlington,+Northumberland",
+    mapsUrl: "https://maps.google.com/?q=The+Singing+Canary+Newcastle",
   },
 
-  // 0=Sun, 1=Mon … 6=Sat — from original SPP availability seed
+  // Thu-Sat evenings — matches the seeded default in server/storage.ts.
   hours: {
     0: { enabled: false },
-    1: { enabled: true,  start: "09:00", end: "17:00" },
-    2: { enabled: true,  start: "09:00", end: "17:00" },
-    3: { enabled: true,  start: "09:00", end: "17:00" },
-    4: { enabled: true,  start: "09:00", end: "17:00" },
-    5: { enabled: true,  start: "09:00", end: "17:00" },
-    6: { enabled: true,  start: "09:00", end: "17:00" },
+    1: { enabled: false },
+    2: { enabled: false },
+    3: { enabled: false },
+    4: { enabled: true, start: "19:00", end: "23:00" },
+    5: { enabled: true, start: "19:00", end: "23:00" },
+    6: { enabled: true, start: "19:00", end: "23:00" },
   },
 
-  services: [
-    {
-      id: 1,
-      name: "Full Groom",
-      description: "Bath, dry, cut, brush, nails and finish. Puppy £35 · Small £30–£40 · Medium £40–£50 · Large £50–£60. Final price depends on dog's condition and coat type.",
-      durationMinutes: 120,
-      price: 30,
-      depositPercent: 25,
-      imageUrl: "",
-      category: "Full Groom",
-      fromPrice: true,
-      sortOrder: 1,
-      active: true,
-    },
-    {
-      id: 2,
-      name: "Bath & Tidy Up",
-      description: "Bath, blow dry, brush and a light tidy. Small £30–£40 · Medium £40–£50 · Large £50–£60. Final price depends on dog's condition and coat type.",
-      durationMinutes: 120,
-      price: 30,
-      depositPercent: 25,
-      imageUrl: "",
-      category: "Bath",
-      fromPrice: true,
-      sortOrder: 2,
-      active: true,
-    },
-    {
-      id: 3,
-      name: "Bath & Deshed",
-      description: "Deep bath, deshedding treatment and dry. Small £30–£40 · Medium £40–£50 · Large £50–£60. Best for double-coated breeds and heavy shedders.",
-      durationMinutes: 120,
-      price: 30,
-      depositPercent: 25,
-      imageUrl: "",
-      category: "Bath",
-      fromPrice: true,
-      sortOrder: 3,
-      active: true,
-    },
-    {
-      id: 4,
-      name: "Nail Clipping",
-      description: "Add-on or stand-alone. Quick, calm trim with treats. £10 — all sizes.",
-      durationMinutes: 15,
-      price: 10,
-      depositPercent: 0,
-      imageUrl: "",
-      category: "Add-on",
-      sortOrder: 4,
-      active: true,
-    },
-    {
-      id: 5,
-      name: "Feet Trim",
-      description: "Trim around the paws — keeps feet neat and prevents matting between the pads. £10 — all sizes.",
-      durationMinutes: 15,
-      price: 10,
-      depositPercent: 0,
-      imageUrl: "",
-      category: "Add-on",
-      sortOrder: 5,
-      active: true,
-    },
-  ],
+  room: {
+    sessionDurationMinutes: 240, // 4 hours
+    depositAmount: 150,
+    depositRefundDescription: "as a bar tab on the night",
+    maxPartySize: 40,
+  },
 
   copy: {
-    heroTitle: "Your Dog Deserves Pampered Perfection",
+    heroTitle: "Grab the Mic, Own the Night",
     heroSubtitle:
-      "Professional in-home dog grooming across Cramlington and Northumberland — gentle, stress-free grooming at your own home.",
-    aboutTitle: "Hello, I'm Annabelle",
+      "Newcastle's home of karaoke, dancing and good times — book our private function room for birthdays, hen dos, work parties, or just because.",
+    aboutTitle: "About The Singing Canary",
     aboutBody:
-      "I run Sophie's Pampered Paws — an in-home dog grooming service covering Cramlington and the wider Northumberland area.\n\nI come to you and set up a fully-fitted grooming station in your home, so your dog never has to leave home. That means no cages, no waiting around with other dogs, and a much calmer experience — especially good for nervous pups, puppies and older dogs.\n\nEvery groom is one-to-one. (Annabelle: you can edit this in the admin Content tab to add your own story.)",
+      "The Singing Canary is Newcastle's home of karaoke, dancing and good times — a neon-lit corner pub where the mic is always live and the good times don't stop.\n\nOur private function room is exclusively yours for the night once booked — no sharing the stage, no queuing for a slot. Just you, your crowd, and a room built for singing your heart out.\n\nWhether it's a birthday, a hen do, a work do, or no occasion at all, we've got the room, the sound system, and the atmosphere. (Update this in the admin Content tab to add your own story.)",
     bookingHeroSubtitle:
-      "Pick a service, a date and a time that suits you. I'll confirm by message within 24 hours.",
+      "Pick a date, tell us the occasion, and the room's yours. A £150 deposit secures it — and comes straight back to you as a bar tab on the night.",
     homeBullets: [
-      "In-home — I come to you",
-      "Calm, one-to-one grooming",
-      "All sizes and coat types",
-      "Cramlington & Northumberland",
+      "Exclusive use — the room's yours for the night",
+      "£150 deposit — comes back as a bar tab",
+      "Newcastle's home of karaoke, dancing & good times",
     ],
-    howItWorksTitle: "How My In-Home Dog Grooming Service Works",
+    howItWorksTitle: "How Booking Works",
     howItWorksIntro:
-      "From arrival to a clean, happy dog — here's exactly what to expect when I come to groom your dog at home.",
+      "From picking a date to grabbing the mic — here's exactly what happens.",
     howItWorksSteps: [
-      "I come into your home, so your dog can stay relaxed in their own familiar surroundings.",
-      "I set up my foldable grooming table in a suitable area of your home.",
-      "For bathing, I use a small portable white bath that fits securely inside your bath or shower. If you prefer, I'm also happy to use your bath or shower directly.",
-      "I bring everything needed for the groom, including the dryer, clippers, scissors, brushes, shampoos, and all other grooming equipment.",
-      "All I need from you is access to water and electricity.",
-      "Once your dog's groom is complete, I pack everything away and leave the area clean and tidy.",
+      "Pick a date and time that works for you — the room is booked exclusively, so once it's yours, it's yours.",
+      "Tell us your party size and the occasion — birthday, hen do, work party, or just because.",
+      "Pay a £150 deposit online to lock in your booking.",
+      "Turn up on the night — your £150 comes straight back to you as a bar tab.",
+      "Grab the mic and get singing. Singing, dancing, good times.",
     ],
   },
 
   gallery: [
-    // Empty — Annabelle will upload photos via the admin Content tab.
+    // Empty — upload photos via the admin Content tab.
   ],
 
   payments: {
-    // Owner has chosen SumUp. Mode stays "mvp" until the SumUp Payment Link
-    // flow is wired in; the contact-within-24-hours screen still shows.
     mode: "mvp",
     contactWindow: "24 hours",
     currency: "GBP",
@@ -171,16 +109,16 @@ const config: TenantConfig = {
   },
 
   admin: {
-    // Passcode-only login (case-insensitive). Annabelle can change this here later.
-    passcode: "W3lcome",
+    // Passcode-only login (case-insensitive). Change this before going live.
+    passcode: "CanarySings1",
   },
 
   seo: {
-    siteUrl: "https://sophiespamperedpaws.co.uk",
-    defaultTitle: "Sophie's Pampered Paws · In-Home Dog Grooming · Cramlington & Northumberland",
+    siteUrl: "https://thesingingcanary.co.uk",
+    defaultTitle: "The Singing Canary · Karaoke & Function Room · Newcastle",
     defaultDescription:
-      "Friendly, professional in-home dog grooming across Cramlington and Northumberland. Full grooms, bath and tidy, deshedding, nails and feet trims — done calmly in your own home. Book online.",
-    ogImage: "/img/og-default.png",
+      "Newcastle's home of karaoke, dancing and good times. Book our private function room for birthdays, hen dos, work parties and more — £150 deposit, refunded as a bar tab on the night.",
+    ogImage: "/img/logo.png",
   },
 };
 

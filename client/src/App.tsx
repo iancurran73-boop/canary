@@ -7,7 +7,6 @@ import { BrandThemeProvider } from "@/components/brand-theme-provider";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Book from "@/pages/book";
-import Services from "@/pages/services";
 import HowItWorks from "@/pages/how-it-works";
 import Gallery from "@/pages/gallery";
 import About from "@/pages/about";
@@ -24,7 +23,6 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/book" component={Book} />
-      <Route path="/services" component={Services} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/gallery" component={Gallery} />
       <Route path="/about" component={About} />

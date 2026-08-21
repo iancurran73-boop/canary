@@ -12,7 +12,6 @@ import {
 } from "./storage";
 import { sendBookingEmails, sendNewBookingAlert, sendCancellationEmail, sendTestEmail } from "./email";
 import {
-  insertServiceSchema,
   insertBlockedDateSchema,
   insertSettingsSchema,
   insertWorkingHoursSchema,
@@ -37,34 +36,22 @@ const fromMinutes = (m: number) => {
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Map a stored booking row into the shape sendBookingEmails expects.
-  const emailForBooking = async (booking: { serviceId: number } & Record<string, any>) => {
-    const service = await storage.getService(booking.serviceId);
-    return {
-      customerName: booking.customerName,
-      email: booking.customerEmail,
-      phone: booking.customerPhone,
-      postcode: booking.postcode,
-      date: booking.date,
-      time: booking.startTime,
-      serviceName: service?.name ?? "",
-      dogName: booking.dogName,
-      breed: booking.dogBreed,
-      size: booking.dogSize,
-      depositPaid: typeof booking.depositAmount === "number" ? booking.depositAmount.toFixed(2) : booking.depositAmount,
-      balanceDue: typeof booking.balanceDue === "number" ? booking.balanceDue.toFixed(2) : booking.balanceDue,
-      notes: booking.notes,
-    };
-  };
+  const emailForBooking = async (booking: Record<string, any>) => ({
+    customerName: booking.customerName,
+    email: booking.customerEmail,
+    phone: booking.customerPhone,
+    date: booking.date,
+    time: booking.startTime,
+    eventType: booking.eventType,
+    partySize: booking.partySize,
+    depositPaid: typeof booking.depositAmount === "number" ? booking.depositAmount.toFixed(2) : booking.depositAmount,
+    notes: booking.notes,
+  });
 
   // ========= PUBLIC (widget) =========
 
-  // List bookable services
-  app.get("/api/public/services", async (_req, res) => {
-    const list = await storage.listServices(true);
-    res.json(list);
-  });
-
-  // Studio meta (used by the widget)
+  // Venue meta (used by the widget) — session length and deposit are venue-wide,
+  // there's no per-service concept, just the one room.
   app.get("/api/public/studio", async (_req, res) => {
     const s = await storage.getSettings();
     res.json({
@@ -72,17 +59,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       acceptingBookings: s.acceptingBookings,
       minNoticeHours: s.minNoticeHours,
       maxAdvanceDays: s.maxAdvanceDays,
+      sessionDurationMinutes: s.sessionDurationMinutes,
+      depositAmount: s.depositAmount,
     });
   });
 
-  // Available start-times for a service on a given date.
+  // Available session start-times on a given date.
   app.get("/api/public/availability", async (req, res) => {
     const date = String(req.query.date || "");
-    const serviceId = Number(req.query.serviceId);
-    if (!date || !serviceId) return res.status(400).json({ error: "date and serviceId required" });
-
-    const service = await storage.getService(serviceId);
-    if (!service || !service.active) return res.json({ slots: [] });
+    if (!date) return res.status(400).json({ error: "date required" });
 
     const settings = await storage.getSettings();
     if (!settings.acceptingBookings) return res.json({ slots: [] });
@@ -100,7 +85,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const dayStart = toMinutes(wh.startTime);
     const dayEnd = toMinutes(wh.endTime);
-    const dur = service.durationMinutes;
+    const dur = settings.sessionDurationMinutes;
     const buffer = settings.bufferMinutes;
     const step = 15; // 15-minute increments
 
@@ -120,7 +105,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       slotDate.setMinutes(t);
       if (slotDate.getTime() - now.getTime() < minNoticeMs) continue;
 
-      // Conflict with existing bookings (+ buffer either side)
+      // Conflict with existing bookings (+ buffer either side) — the room is
+      // exclusive, so any overlap at all blocks the slot.
       const conflict = dayBookings.some((b) => {
         const bs = toMinutes(b.startTime);
         const be = toMinutes(b.endTime);
@@ -143,83 +129,57 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ slots, durationMinutes: dur });
   });
 
-  // Create a booking (status=pending) and return a mock checkout url
+  // Create a booking (status=pending) — a flat deposit secures it, refunded
+  // as a bar tab on the night.
   app.post("/api/public/bookings", async (req, res) => {
     const bodySchema = z.object({
-      serviceId: z.number().int(),
       customerName: z.string().min(1),
       customerEmail: z.string().email(),
       customerPhone: z.string().min(5),
+      eventType: z.string().min(1, "Let us know what the occasion is"),
+      partySize: z.number().int().min(1).max(200),
       notes: z.string().optional().default(""),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       startTime: z.string().regex(HHMM),
-      addressLine1: z.string().min(1, "Address required"),
-      postcode: z.string().min(3, "Postcode required"),
-      dogName: z.string().min(1, "Dog name required"),
-      dogBreed: z.string().min(1, "Dog breed required"),
-      dogSize: z.enum(["small", "medium", "large", "xlarge"]),
     });
     const parse = bodySchema.safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
     const data = parse.data;
 
-    const service = await storage.getService(data.serviceId);
-    if (!service || !service.active) return res.status(400).json({ error: "Service unavailable" });
+    const settings = await storage.getSettings();
+    if (!settings.acceptingBookings) return res.status(400).json({ error: "Not currently taking bookings" });
 
     const startMin = toMinutes(data.startTime);
-    const endMin = startMin + service.durationMinutes;
+    const endMin = startMin + settings.sessionDurationMinutes;
     const endTime = fromMinutes(endMin);
 
-    // Final slot check (race protection)
+    // Final slot check (race protection) — the room is exclusive, so any
+    // overlap with an existing pending/confirmed booking blocks this one.
     const sameDay = (await storage.listBookings(data.date, data.date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    const settings = await storage.getSettings();
     const conflict = sameDay.some((b) => {
       const bs = toMinutes(b.startTime);
       const be = toMinutes(b.endTime);
       return startMin < be + settings.bufferMinutes && endMin + settings.bufferMinutes > bs;
     });
-    if (conflict) return res.status(409).json({ error: "Slot just got taken — please pick another." });
-
-    // Determine price by size, falling back to base price
-    const sizePrice: Record<string, number | null | undefined> = {
-      small: service.priceSmall,
-      medium: service.priceMedium,
-      large: service.priceLarge,
-      xlarge: service.priceXLarge,
-    };
-    const totalPrice = sizePrice[data.dogSize] ?? service.price;
-    // A service can have deposits switched off entirely (Admin > Services). When
-    // off, there's nothing to collect up front, but the booking still lands as
-    // "pending" like any other — it just needs a manual "Mark confirmed" from
-    // the owner instead of a deposit payment before it's locked in.
-    const depositRequired = service.depositEnabled && service.depositPercent > 0;
-    const depositAmount = depositRequired
-      ? Math.round((totalPrice * service.depositPercent) / 100 * 100) / 100
-      : 0;
-    const balanceDue = Math.round((totalPrice - depositAmount) * 100) / 100;
+    if (conflict) return res.status(409).json({ error: "That session just got taken — please pick another." });
 
     const booking = await storage.createBooking({
-      serviceId: service.id,
       customerName: data.customerName,
       customerEmail: data.customerEmail,
       customerPhone: data.customerPhone,
+      eventType: data.eventType,
+      partySize: data.partySize,
       notes: data.notes,
       date: data.date,
       startTime: data.startTime,
       endTime,
-      totalPrice,
-      depositAmount,
-      balanceDue,
+      depositAmount: settings.depositAmount,
       status: "pending",
       paymentRef: "",
       createdAt: Date.now(),
-      addressLine1: data.addressLine1,
-      postcode: data.postcode,
-      dogName: data.dogName,
-      dogBreed: data.dogBreed,
-      dogSize: data.dogSize,
+      sumupCheckoutId: "",
       reminderSentAt: null,
     });
 
@@ -230,7 +190,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     res.json({
       bookingId: booking.id,
-      depositAmount,
+      depositAmount: booking.depositAmount,
       status: booking.status,
     });
   });
@@ -249,8 +209,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = Number(req.params.id);
     const b = await storage.getBooking(id);
     if (!b) return res.status(404).json({ error: "Not found" });
-    const svc = await storage.getService(b.serviceId);
-    res.json({ ...b, service: svc });
+    res.json(b);
   });
 
   // ========= ADMIN AUTH =========
@@ -284,27 +243,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ========= ADMIN =========
 
-  app.get("/api/admin/services", async (_req, res) => {
-    res.json(await storage.listServices(false));
-  });
-  app.post("/api/admin/services", async (req, res) => {
-    const parse = insertServiceSchema.safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
-    res.json(await storage.createService(parse.data));
-  });
-  app.patch("/api/admin/services/:id", async (req, res) => {
-    const id = Number(req.params.id);
-    const parse = insertServiceSchema.partial().safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
-    const updated = await storage.updateService(id, parse.data);
-    if (!updated) return res.status(404).json({ error: "Not found" });
-    res.json(updated);
-  });
-  app.delete("/api/admin/services/:id", async (req, res) => {
-    const id = Number(req.params.id);
-    res.json({ ok: await storage.deleteService(id) });
-  });
-
   app.get("/api/admin/working-hours", async (_req, res) => {
     res.json(await storage.listWorkingHours());
   });
@@ -328,19 +266,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/admin/bookings", async (req, res) => {
     const list = await storage.listBookings(req.query.from as string | undefined, req.query.to as string | undefined);
-    const services = await storage.listServices(false);
     const enriched = await Promise.all(list.map(async (b) => {
       const hist = await storage.getCustomerHistory(b.customerEmail, b.customerPhone, b.id);
       const returningCustomer = hist.visits > 0 ? {
         visits: hist.visits,
         lastVisitDate: hist.lastVisitDate,
-        lastDogName: hist.lastDogName,
-        lastDogBreed: hist.lastDogBreed,
-        lastServiceName: hist.lastServiceId != null
-          ? (services.find((s) => s.id === hist.lastServiceId)?.name ?? null)
-          : null,
+        lastEventType: hist.lastEventType,
       } : null;
-      return { ...b, service: services.find((s) => s.id === b.serviceId), returningCustomer };
+      return { ...b, returningCustomer };
     }));
     res.json(enriched);
   });
@@ -463,7 +396,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ========= ADMIN PAGES =========
-  // Core pages (Home, Services, Gallery, About, Contact, How It Works) are
+  // Core pages (Home, Gallery, About, Contact, How It Works) are
   // seeded once and only their nav placement (navLabel/sortOrder/visible) can
   // change here — their content is edited in the existing Content tab, and
   // they can't be deleted since other pages link to their fixed URLs.
@@ -715,7 +648,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   };
 
   const defaultPolicyBody =
-    "Cancellations made more than [N] hours before your appointment receive a full booking fee refund. Cancellations within [N] hours are non-refundable.";
+    "Cancellations made more than [N] hours before your booking receive a full deposit refund. Cancellations within [N] hours are non-refundable.";
 
   const readBusiness = async () => ({
     ownerName: await val("business.ownerName", tc.business.ownerName),
@@ -731,6 +664,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     colors: {
       primary: await val("brand.color.primary", tc.brand.colors.primary),
       accent: await val("brand.color.accent", tc.brand.colors.accent),
+      tertiary: await val("brand.color.tertiary", tc.brand.colors.tertiary),
       background: await val("brand.color.background", tc.brand.colors.background),
       foreground: await val("brand.color.foreground", tc.brand.colors.foreground),
     },
@@ -741,19 +675,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   const readPolicy = async () => ({
-    cancellationNoticeHours: await intVal("policy.cancellationNoticeHours", 24),
+    cancellationNoticeHours: await intVal("policy.cancellationNoticeHours", 48),
     refundPercentInsideNotice: await intVal("policy.refundPercentInsideNotice", 0),
     body: await val("policy.body", defaultPolicyBody),
   });
-
-  const readServiceAreas = async (): Promise<string[]> => {
-    const raw = await storage.getContentValue("serviceAreas.outcodes");
-    if (raw === undefined) return ["NE22", "NE23", "NE24", "NE25", "NE26", "NE27", "NE28", "NE61", "NE62", "NE63", "NE64", "NE65"];
-    return raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
-  };
-
-  const normaliseOutcodes = (arr: string[]) =>
-    Array.from(new Set(arr.map((s) => s.trim().toUpperCase()).filter(Boolean)));
 
   app.get("/api/admin/business-config", async (_req, res) => {
     res.json(await readBusiness());
@@ -789,6 +714,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       colors: z.object({
         primary: z.string().optional(),
         accent: z.string().optional(),
+        tertiary: z.string().optional(),
         background: z.string().optional(),
         foreground: z.string().optional(),
       }).optional(),
@@ -802,6 +728,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const { colors, fonts } = parse.data;
     if (colors?.primary !== undefined) await storage.setContentValue("brand.color.primary", colors.primary);
     if (colors?.accent !== undefined) await storage.setContentValue("brand.color.accent", colors.accent);
+    if (colors?.tertiary !== undefined) await storage.setContentValue("brand.color.tertiary", colors.tertiary);
     if (colors?.background !== undefined) await storage.setContentValue("brand.color.background", colors.background);
     if (colors?.foreground !== undefined) await storage.setContentValue("brand.color.foreground", colors.foreground);
     if (fonts?.display !== undefined) await storage.setContentValue("brand.font.display", fonts.display);
@@ -827,25 +754,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ ok: true, ...(await readPolicy()) });
   });
 
-  app.get("/api/admin/service-areas", async (_req, res) => {
-    res.json({ outcodes: await readServiceAreas() });
-  });
-  app.post("/api/admin/service-areas", async (req, res) => {
-    const schema = z.object({ outcodes: z.array(z.string()) });
-    const parse = schema.safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
-    const normalised = normaliseOutcodes(parse.data.outcodes);
-    await storage.setContentValue("serviceAreas.outcodes", normalised.join(","));
-    res.json({ ok: true, outcodes: normalised });
-  });
-
   // Public merged brand config — fetched on every page load, keep fast & cached.
   app.get("/api/public/brand-config", async (_req, res) => {
-    const [business, branding, policy, serviceAreas] = await Promise.all([
+    const [business, branding, policy] = await Promise.all([
       readBusiness(),
       readBranding(),
       readPolicy(),
-      readServiceAreas(),
     ]);
     res.set("Cache-Control", "no-store, max-age=0");
     res.json({
@@ -853,7 +767,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       colors: branding.colors,
       fonts: branding.fonts,
       policy,
-      serviceAreas,
     });
   });
 

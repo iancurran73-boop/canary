@@ -2,42 +2,20 @@ import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Services the business offers (e.g. "Full Groom", "Bath & Tidy")
-export const services = sqliteTable("services", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  description: text("description").notNull().default(""),
-  durationMinutes: integer("duration_minutes").notNull(), // total appointment length
-  price: real("price").notNull(), // full price in GBP
-  depositPercent: integer("deposit_percent").notNull().default(50),
-  depositEnabled: integer("deposit_enabled", { mode: "boolean" }).notNull().default(true),
-  imageUrl: text("image_url").default(""),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  priceSmall: integer("price_small"),
-  priceMedium: integer("price_medium"),
-  priceLarge: integer("price_large"),
-  priceXLarge: integer("price_xlarge"),
-});
-
-export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
-export type InsertService = z.infer<typeof insertServiceSchema>;
-export type Service = typeof services.$inferSelect;
-
-// Weekly working hours – one row per day-of-week (0=Sunday … 6=Saturday)
+// Weekly opening hours for the function room — one row per day-of-week (0=Sunday … 6=Saturday)
 export const workingHours = sqliteTable("working_hours", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   dayOfWeek: integer("day_of_week").notNull(), // 0..6
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  startTime: text("start_time").notNull().default("09:00"), // "HH:MM"
-  endTime: text("end_time").notNull().default("17:00"),
+  startTime: text("start_time").notNull().default("19:00"), // "HH:MM"
+  endTime: text("end_time").notNull().default("23:00"),
 });
 
 export const insertWorkingHoursSchema = createInsertSchema(workingHours).omit({ id: true });
 export type InsertWorkingHours = z.infer<typeof insertWorkingHoursSchema>;
 export type WorkingHours = typeof workingHours.$inferSelect;
 
-// One-off blocked times (holidays, personal blocks)
+// One-off blocked times (private events, closures)
 export const blockedDates = sqliteTable("blocked_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   date: text("date").notNull(), // ISO date "YYYY-MM-DD"
@@ -50,35 +28,33 @@ export const insertBlockedDateSchema = createInsertSchema(blockedDates).omit({ i
 export type InsertBlockedDate = z.infer<typeof insertBlockedDateSchema>;
 export type BlockedDate = typeof blockedDates.$inferSelect;
 
-// Bookings made by customers
+// Function room bookings. There's only one bookable thing (the room itself),
+// booked exclusively per session — no services, no per-size pricing. A flat
+// deposit (settings.depositAmount) secures the booking and comes back to the
+// customer as a bar tab on the night, so there's no "total price"/balance
+// concept the way an itemised booking would have.
 export const bookings = sqliteTable("bookings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  serviceId: integer("service_id").notNull(),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerPhone: text("customer_phone").notNull(),
+  eventType: text("event_type").notNull().default(""), // e.g. "Birthday", "Hen do", "Corporate", "Just because"
+  partySize: integer("party_size").notNull().default(1),
   notes: text("notes").default(""),
   date: text("date").notNull(), // "YYYY-MM-DD"
   startTime: text("start_time").notNull(), // "HH:MM"
   endTime: text("end_time").notNull(),
-  totalPrice: real("total_price").notNull(),
   depositAmount: real("deposit_amount").notNull(),
-  balanceDue: real("balance_due").notNull(),
-  // pending = slot held, awaiting payment
-  // confirmed = deposit paid, slot locked
+  // pending = slot held, awaiting deposit payment
+  // confirmed = deposit paid (or manually confirmed), session locked
   // cancelled = slot released
-  // completed = appointment finished
+  // completed = session finished
   status: text("status").notNull().default("pending"),
-  paymentRef: text("payment_ref").default(""), // Stripe checkout/session id (mock in prototype)
+  paymentRef: text("payment_ref").default(""),
   createdAt: integer("created_at").notNull(),
-  addressLine1: text("address_line1").notNull().default(""),
-  postcode: text("postcode").notNull().default(""),
-  dogName: text("dog_name").notNull().default(""),
-  dogBreed: text("dog_breed").notNull().default(""),
-  dogSize: text("dog_size").notNull().default(""),
   sumupCheckoutId: text("sumup_checkout_id").default(""),
   // Epoch ms of when a reminder email was sent (or when we gave up on one
-  // because the appointment already passed); null = still awaiting one.
+  // because the session already passed); null = still awaiting one.
   reminderSentAt: integer("reminder_sent_at"),
 });
 
@@ -86,9 +62,7 @@ export const bookings = sqliteTable("bookings", {
 export type ReturningCustomerInfo = {
   visits: number;
   lastVisitDate: string | null;
-  lastDogName: string | null;
-  lastDogBreed: string | null;
-  lastServiceName: string | null;
+  lastEventType: string | null;
 };
 
 export const insertBookingSchema = createInsertSchema(bookings).omit({
@@ -97,22 +71,25 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   paymentRef: true,
   createdAt: true,
   endTime: true,
-  totalPrice: true,
   depositAmount: true,
-  balanceDue: true,
 });
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
 
-// Studio settings (single-row config)
+// Venue settings (single-row config)
 export const settings = sqliteTable("settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  studioName: text("studio_name").notNull().default("Sophie's Pampered Paws"),
+  studioName: text("studio_name").notNull().default("The Singing Canary"),
   acceptingBookings: integer("accepting_bookings", { mode: "boolean" }).notNull().default(true),
-  bufferMinutes: integer("buffer_minutes").notNull().default(15), // gap between bookings
-  minNoticeHours: integer("min_notice_hours").notNull().default(24),
-  maxAdvanceDays: integer("max_advance_days").notNull().default(60),
-  notifyEmail: text("notify_email").notNull().default("hello@sophiespamperedpaws.co.uk"),
+  // How long a booked session runs — there's one room and one session length,
+  // not a per-service duration.
+  sessionDurationMinutes: integer("session_duration_minutes").notNull().default(240),
+  bufferMinutes: integer("buffer_minutes").notNull().default(30), // gap between sessions (setup/clear-down)
+  minNoticeHours: integer("min_notice_hours").notNull().default(48),
+  maxAdvanceDays: integer("max_advance_days").notNull().default(90),
+  // Flat refundable deposit — comes back as a bar tab on the night.
+  depositAmount: real("deposit_amount").notNull().default(150),
+  notifyEmail: text("notify_email").notNull().default(""),
   calendarConnected: integer("calendar_connected", { mode: "boolean" }).notNull().default(false),
   pushEnabled: integer("push_enabled", { mode: "boolean" }).notNull().default(false),
   stripeMode: text("stripe_mode").notNull().default("test"), // "test" | "live"
@@ -150,7 +127,6 @@ export const reviews = sqliteTable("reviews", {
   authorName: text("author_name").notNull(),
   rating: integer("rating").notNull().default(5),
   body: text("body").notNull(),
-  dogName: text("dog_name").default(""),
   publishedAt: text("published_at").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -161,7 +137,7 @@ export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
 
 // Site pages — drives the nav. "core" rows point at built-in routes/components
-// (Home, Services, etc.) and only their nav placement is editable here; "custom"
+// (Home, Contact, etc.) and only their nav placement is editable here; "custom"
 // rows are admin-created pages rendered by the generic layout renderer, with
 // content stored in the `content` table under "page.<slug>.<field>" keys.
 export const pages = sqliteTable("pages", {

@@ -1,7 +1,7 @@
 /**
  * client/src/pages/contact.tsx
  * ─────────────────────────────
- * Contact page — service area, phone, email, map, hours.
+ * Contact page — address, phone, email, hours.
  * All values driven by tenant.config.ts.
  */
 
@@ -11,13 +11,13 @@ import { useQuery } from "@tanstack/react-query";
 import { SiteShell } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { applySeo, breadcrumb } from "@/lib/seo";
-import { Phone, Mail, Instagram, Clock, ArrowRight, Bus } from "lucide-react";
+import { Phone, Mail, Instagram, Clock, ArrowRight, MapPin } from "lucide-react";
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
 import type { WorkingHours } from "@shared/schema";
 
-const { business, brand, hours } = config;
+const { business, hours } = config;
 
 function dbHoursToConfigHours(
   rows: WorkingHours[]
@@ -47,35 +47,31 @@ export default function Contact() {
   const phoneDisplay = c("contact.phoneDisplay", b.phone);
   const email = c("contact.email", b.email);
   const city = c("contact.city", business.address.city);
+  const addressLine1 = c("contact.addressLine1", business.address.line1);
   const postcode = c("contact.postcode", business.address.postcode);
   const instagram = c("contact.instagram", b.instagram ?? "");
   const hoursNote = c("contact.hoursNote", "");
+  const venueImage = c("contact.image", "/img/photos/venue.jpg");
 
   useEffect(() => {
     applySeo({
       title: `Contact ${b.brandName} · ${business.address.city}`,
-      description: `Get in touch with ${b.brandName} for in-home dog grooming in ${city}. Call ${business.phoneDisplay} or email ${business.email}.`,
+      description: `Get in touch with ${b.brandName} in ${city}. Call ${business.phoneDisplay} or email ${business.email}.`,
       path: "/contact",
       jsonLd: [breadcrumb([{ name: "Home", path: "/" }, { name: "Contact", path: "/contact" }])],
     });
   }, [city]);
 
-  const serviceOutcodes = b.serviceAreas ?? [];
-  const areaLabel =
-    serviceOutcodes.length > 1
-      ? `${serviceOutcodes.slice(0, -1).join(", ")} & ${serviceOutcodes[serviceOutcodes.length - 1]}`
-      : serviceOutcodes[0] ?? postcode;
-
   return (
     <SiteShell>
-      <section className="bg-gradient-to-br from-[hsl(35_40%_97%)] to-[hsl(35_40%_92%)] pt-12 sm:pt-20 pb-10 sm:pb-14">
+      <section className="bg-gradient-to-br from-muted to-background pt-12 sm:pt-20 pb-10 sm:pb-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">Contact</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05] max-w-3xl">
             Get in <span className="font-serif italic font-medium text-primary">touch</span>.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            {b.brandName} is an in-home service based in {city}, covering local appointments across Northumberland.
+            {b.brandName} is in {city} — drop us a line, or book the room straight away.
           </p>
         </div>
       </section>
@@ -98,6 +94,13 @@ export default function Contact() {
                   <a href={`mailto:${email}`} className="font-display font-bold text-base sm:text-lg hover:text-primary block mt-1 break-all">{email}</a>
                 </div>
               </div>
+              <div className="flex items-start gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><MapPin className="size-5" /></div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] font-bold text-muted-foreground">Address</p>
+                  <p className="font-display font-bold text-lg mt-1">{addressLine1}, {city} {postcode}</p>
+                </div>
+              </div>
               {instagram && (
                 <div className="flex items-start gap-3">
                   <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><Instagram className="size-5" /></div>
@@ -113,7 +116,7 @@ export default function Contact() {
               <div className="flex items-start gap-3">
                 <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><Clock className="size-5" /></div>
                 <div className="flex-1">
-                  <p className="text-xs uppercase tracking-[0.18em] font-bold text-muted-foreground">Working hours</p>
+                  <p className="text-xs uppercase tracking-[0.18em] font-bold text-muted-foreground">Booking hours</p>
                   <ul className="mt-2 space-y-1 text-sm">
                     {Object.entries(displayHours).sort(([a], [b]) => Number(a) - Number(b)).map(([day, v]) => {
                       const dayNum = Number(day);
@@ -142,17 +145,11 @@ export default function Contact() {
           <div className="lg:col-span-7 space-y-5">
             <div className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
               <img
-                src={`${import.meta.env.BASE_URL || "./"}img/service-area-map.png`}
-                alt={`Service area map — postcodes covered by ${b.brandName}: ${areaLabel}`}
+                src={venueImage}
+                alt={b.brandName}
                 className="w-full h-auto block"
                 loading="lazy"
               />
-            </div>
-            <p className="text-xs text-muted-foreground text-center -mt-1">Covering postcodes {areaLabel}</p>
-            <div className="bg-card border border-card-border rounded-2xl p-5 sm:p-6">
-              <Bus className="size-5 text-primary" />
-              <h3 className="font-display font-bold text-base mt-3">Need to check coverage?</h3>
-              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">Send your postcode before booking if you're just outside {city} and I'll confirm whether I can travel to you.</p>
             </div>
           </div>
         </div>
@@ -168,7 +165,7 @@ export default function Contact() {
           </p>
           <Link href="/book">
             <Button size="lg" className="rounded-full px-8 py-6 mt-7 text-base font-semibold shadow-xl">
-              Book your appointment <ArrowRight className="size-4 ml-1.5" />
+              Book the room <ArrowRight className="size-4 ml-1.5" />
             </Button>
           </Link>
         </div>

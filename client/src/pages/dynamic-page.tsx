@@ -18,7 +18,7 @@ import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
 import type { SitePage } from "@/lib/pages";
 import type { Review } from "@shared/schema";
-import { ArrowRight, PawPrint, Home, Settings2, Droplets, Scissors, Plug, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Mic2, Calendar, Users, CreditCard, PartyPopper, Star } from "lucide-react";
 import NotFound from "@/pages/not-found";
 
 async function fetchPage(slug: string): Promise<SitePage | null> {
@@ -28,11 +28,11 @@ async function fetchPage(slug: string): Promise<SitePage | null> {
   return res.json();
 }
 
-const STEP_ICONS = [Home, Settings2, Droplets, Scissors, Plug, Sparkles];
+const STEP_ICONS = [Calendar, Users, CreditCard, PartyPopper, Mic2];
 
 function Hero({ title, intro }: { title: string; intro: string }) {
   return (
-    <section className="pt-12 sm:pt-20 pb-10 sm:pb-14 bg-gradient-to-br from-[hsl(35_40%_97%)] to-[hsl(35_40%_92%)]">
+    <section className="pt-12 sm:pt-20 pb-10 sm:pb-14 bg-gradient-to-br from-muted to-background">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.05]">{title}</h1>
         {intro && <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">{intro}</p>}
@@ -70,7 +70,7 @@ function StepsLayout({ slug, title, intro }: { slug: string; title: string; intr
           ) : (
             <ol className="space-y-6">
               {steps.map((step, i) => {
-                const Icon = STEP_ICONS[i] ?? PawPrint;
+                const Icon = STEP_ICONS[i] ?? Mic2;
                 return (
                   <li key={i} className="flex gap-5 sm:gap-6 items-start">
                     <div className="shrink-0 flex flex-col items-center">
@@ -89,7 +89,7 @@ function StepsLayout({ slug, title, intro }: { slug: string; title: string; intr
         </div>
       </section>
       {photos.some(Boolean) && (
-        <section className="py-16 sm:py-24 bg-[hsl(35_40%_94%)]">
+        <section className="py-16 sm:py-24 bg-muted">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 grid sm:grid-cols-3 gap-5">
             {photos.filter(Boolean).map((url, i) => (
               <div key={i} className="rounded-2xl overflow-hidden border border-card-border shadow-sm bg-card">
@@ -112,7 +112,7 @@ function StoryLayout({ slug, title, intro }: { slug: string; title: string; intr
 
   return (
     <>
-      <section className="pt-12 sm:pt-20 pb-10 bg-gradient-to-br from-[hsl(35_40%_97%)] to-[hsl(35_40%_92%)]">
+      <section className="pt-12 sm:pt-20 pb-10 bg-gradient-to-br from-muted to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-12 gap-8 lg:gap-14 items-center">
           <div className={image ? "lg:col-span-7" : "lg:col-span-12 text-center"}>
             <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.05]">{title}</h1>
@@ -240,7 +240,6 @@ function TestimonialsLayout({ title, intro }: { title: string; intro: string }) 
                   <blockquote className="font-serif italic text-lg leading-relaxed text-foreground/85">"{r.body}"</blockquote>
                   <figcaption className="mt-5 pt-5 border-t border-card-border">
                     <p className="font-display font-bold text-sm">{r.authorName}</p>
-                    {r.dogName && <p className="text-xs text-muted-foreground">{r.dogName}</p>}
                   </figcaption>
                 </figure>
               ))}

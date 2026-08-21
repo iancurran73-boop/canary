@@ -21,8 +21,7 @@ import {
   ChevronUp, ChevronDown, GripVertical, Image as ImageIcon, Star, MessageSquare, CreditCard,
   Building2, Palette, ScrollText, MapPin, Mail, Layers, Eye, EyeOff,
 } from "lucide-react";
-import type { Service, Booking, WorkingHours, BlockedDate, Settings, Review, ReturningCustomerInfo } from "@shared/schema";
-import { SIZE_LABELS, type DogSize } from "@/lib/breeds";
+import type { Booking, WorkingHours, BlockedDate, Settings, Review, ReturningCustomerInfo } from "@shared/schema";
 import { AdminGate, AdminLogout } from "@/components/admin-gate";
 import { useContent, useGalleryItems, useContentMutations } from "@/lib/content";
 import type { GalleryItem } from "@/lib/content";
@@ -32,9 +31,9 @@ import { ImageDropzone } from "@/components/content/ImageDropzone";
 import { InlineText } from "@/components/content/InlineText";
 import config from "@/lib/tenant";
 
-type Tab = "today" | "schedule" | "services" | "availability" | "settings" | "content" | "pages" | "reviews" | "payments" | "business" | "branding" | "policy" | "serviceareas" | "emails";
+type Tab = "today" | "schedule" | "availability" | "settings" | "content" | "pages" | "reviews" | "payments" | "business" | "branding" | "policy" | "emails";
 
-type BookingWithService = Booking & { service?: Service; returningCustomer?: ReturningCustomerInfo | null };
+type AdminBooking = Booking & { returningCustomer?: ReturningCustomerInfo | null };
 
 function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
@@ -57,8 +56,7 @@ function ReturningBadge({ info }: { info: ReturningCustomerInfo }) {
   const parts = [
     `${ordinal(info.visits + 1)} visit`,
     info.lastVisitDate ? formatLastVisit(info.lastVisitDate) : null,
-    info.lastDogBreed || null,
-    info.lastServiceName || null,
+    info.lastEventType || null,
   ].filter(Boolean);
   return (
     <span
@@ -119,7 +117,6 @@ function AdminInner() {
                 <TabsList className="bg-transparent p-0 h-auto flex flex-wrap gap-2 justify-start">
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="today" data-testid="tab-today"><Calendar className="size-4 mr-1.5" /> Today</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="schedule" data-testid="tab-schedule"><Clock className="size-4 mr-1.5" /> Schedule</TabsTrigger>
-                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="services" data-testid="tab-services"><Briefcase className="size-4 mr-1.5" /> Services</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="availability" data-testid="tab-availability"><CalendarOff className="size-4 mr-1.5" /> Hours</TabsTrigger>
                 </TabsList>
               </NavGroup>
@@ -135,7 +132,6 @@ function AdminInner() {
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="business" data-testid="tab-business"><Building2 className="size-4 mr-1.5" /> Business</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="branding" data-testid="tab-branding"><Palette className="size-4 mr-1.5" /> Branding</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="policy" data-testid="tab-policy"><ScrollText className="size-4 mr-1.5" /> Policy</TabsTrigger>
-                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="serviceareas" data-testid="tab-serviceareas"><MapPin className="size-4 mr-1.5" /> Areas</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="emails" data-testid="tab-emails"><Mail className="size-4 mr-1.5" /> Emails</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="payments" data-testid="tab-payments"><CreditCard className="size-4 mr-1.5" /> Payments</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="settings" data-testid="tab-settings"><SettingsIcon className="size-4 mr-1.5" /> Settings</TabsTrigger>
@@ -145,7 +141,6 @@ function AdminInner() {
 
             <TabsContent value="today"><TodayTab /></TabsContent>
             <TabsContent value="schedule"><ScheduleTab /></TabsContent>
-            <TabsContent value="services"><ServicesTab /></TabsContent>
             <TabsContent value="availability"><AvailabilityTab /></TabsContent>
             <TabsContent value="content"><ContentTab /></TabsContent>
             <TabsContent value="pages"><PagesTab /></TabsContent>
@@ -154,7 +149,6 @@ function AdminInner() {
             <TabsContent value="business"><BusinessTab /></TabsContent>
             <TabsContent value="branding"><BrandingTab /></TabsContent>
             <TabsContent value="policy"><PolicyTab /></TabsContent>
-            <TabsContent value="serviceareas"><ServiceAreasTab /></TabsContent>
             <TabsContent value="emails"><EmailsTab /></TabsContent>
             <TabsContent value="settings"><SettingsTab /></TabsContent>
           </Tabs>
@@ -166,7 +160,6 @@ function AdminInner() {
             {([
               ["today", Calendar, "Today"],
               ["schedule", Clock, "Schedule"],
-              ["services", Briefcase, "Services"],
               ["availability", CalendarOff, "Hours"],
               ["content", FileText, "Content"],
               ["pages", Layers, "Pages"],
@@ -175,7 +168,6 @@ function AdminInner() {
               ["business", Building2, "Business"],
               ["branding", Palette, "Brand"],
               ["policy", ScrollText, "Policy"],
-              ["serviceareas", MapPin, "Areas"],
               ["emails", Mail, "Emails"],
               ["settings", SettingsIcon, "Settings"],
             ] as [Tab, typeof Calendar, string][]).map(([id, Icon, label]) => (
@@ -200,7 +192,7 @@ function AdminInner() {
 function TodayTab() {
   const today = todayIso();
   const week = addDays(today, 7);
-  const { data: bookings = [], isLoading } = useQuery<BookingWithService[]>({
+  const { data: bookings = [], isLoading } = useQuery<AdminBooking[]>({
     queryKey: ["/api/admin/bookings", { from: today, to: week }],
     queryFn: async () => {
       const r = await apiRequest("GET", `/api/admin/bookings?from=${today}&to=${week}`);
@@ -267,7 +259,7 @@ const STATUS_STYLES: Record<string, string> = {
   completed: "bg-muted text-muted-foreground border-muted-foreground/20",
 };
 
-function BookingRow({ booking }: { booking: BookingWithService }) {
+function BookingRow({ booking }: { booking: AdminBooking }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -288,27 +280,13 @@ function BookingRow({ booking }: { booking: BookingWithService }) {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="font-display font-bold text-foreground">{booking.customerName}</div>
-                <div className="text-sm text-muted-foreground truncate">{booking.service?.name ?? "Service"} · {formatDuration((booking.service?.durationMinutes) ?? 0)}</div>
+                <div className="text-sm text-muted-foreground truncate">{booking.eventType || "Booking"} · {booking.partySize} guest{booking.partySize === 1 ? "" : "s"}</div>
               </div>
               <Badge variant="outline" className={`text-[10px] uppercase tracking-wider ${STATUS_STYLES[booking.status]}`}>{booking.status}</Badge>
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              <span>{gbp(booking.depositAmount)} paid</span>
-              <span className="text-foreground/30">•</span>
-              <span>{gbp(booking.balanceDue)} due</span>
+              <span>{gbp(booking.depositAmount)} deposit</span>
             </div>
-            {(booking.dogName || booking.dogBreed || booking.postcode) && (
-              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                {booking.dogName && <span className="font-medium text-foreground">{booking.dogName}</span>}
-                {booking.dogBreed && <span>({booking.dogBreed})</span>}
-                {booking.dogSize ? (
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                    {SIZE_LABELS[booking.dogSize as DogSize] ?? booking.dogSize}
-                  </Badge>
-                ) : null}
-                {booking.postcode && <span>· {booking.postcode}</span>}
-              </div>
-            )}
             {booking.returningCustomer && booking.returningCustomer.visits > 0 && (
               <div className="mt-1.5">
                 <ReturningBadge info={booking.returningCustomer} />
@@ -322,7 +300,7 @@ function BookingRow({ booking }: { booking: BookingWithService }) {
   );
 }
 
-function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClose: () => void; booking: BookingWithService }) {
+function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClose: () => void; booking: AdminBooking }) {
   const { toast } = useToast();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
@@ -352,9 +330,6 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
     },
   });
 
-  const totalPrice = booking.depositAmount + booking.balanceDue;
-  const addressLine = [booking.addressLine1, booking.postcode].filter(Boolean).join(", ");
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
@@ -370,7 +345,7 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
           <section className="space-y-1">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">When</div>
             <div className="font-display text-lg font-bold text-foreground">{formatDate(booking.date)} · {booking.startTime}</div>
-            <div className="text-xs text-muted-foreground">{booking.service?.name ?? "—"} · {formatDuration((booking.service?.durationMinutes) ?? 0)}</div>
+            <div className="text-xs text-muted-foreground">{booking.eventType || "—"} · {booking.partySize} guest{booking.partySize === 1 ? "" : "s"}</div>
           </section>
 
           {/* Customer */}
@@ -381,33 +356,12 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
               <a href={`mailto:${booking.customerEmail}`} className="text-primary hover:underline break-all" data-testid={`link-email-${booking.id}`}>{booking.customerEmail}</a>
               <a href={`tel:${booking.customerPhone}`} className="text-primary hover:underline" data-testid={`link-phone-${booking.id}`}>{booking.customerPhone}</a>
             </div>
-            {addressLine && (
-              <div className="text-xs text-foreground/80">{addressLine}</div>
-            )}
           </section>
-
-          {/* Dog */}
-          {(booking.dogName || booking.dogBreed || booking.dogSize) && (
-            <section className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dog</div>
-              <div className="text-foreground">
-                <span className="font-semibold">{booking.dogName || "—"}</span>
-                {booking.dogBreed && <span className="text-muted-foreground"> · {booking.dogBreed}</span>}
-                {booking.dogSize && (
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 ml-2">
-                    {SIZE_LABELS[booking.dogSize as DogSize] ?? booking.dogSize}
-                  </Badge>
-                )}
-              </div>
-            </section>
-          )}
 
           {/* Payment */}
           <section className="space-y-1.5 rounded-lg bg-muted/40 border border-card-border p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Payment</div>
-            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Total</span><span className="font-medium text-foreground">{gbp(totalPrice)}</span></div>
             <div className="flex justify-between text-xs"><span className="text-muted-foreground">Deposit paid</span><span className="font-medium text-foreground">{gbp(booking.depositAmount)}</span></div>
-            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Balance on the day</span><span className="font-medium text-foreground">{gbp(booking.balanceDue)}</span></div>
             {booking.paymentRef && (
               <div className="flex justify-between text-xs pt-1 border-t border-card-border"><span className="text-muted-foreground">Payment ref</span><span className="font-mono text-foreground">{booking.paymentRef}</span></div>
             )}
@@ -464,13 +418,13 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
 function ScheduleTab() {
   const today = todayIso();
   const future = addDays(today, 90);
-  const { data: bookings = [] } = useQuery<BookingWithService[]>({
+  const { data: bookings = [] } = useQuery<AdminBooking[]>({
     queryKey: ["/api/admin/bookings", { from: today, to: future }],
     queryFn: async () => (await apiRequest("GET", `/api/admin/bookings?from=${today}&to=${future}`)).json(),
   });
 
   // Group by date
-  const grouped: Record<string, BookingWithService[]> = {};
+  const grouped: Record<string, AdminBooking[]> = {};
   bookings.filter((b) => b.status !== "cancelled").forEach((b) => {
     grouped[b.date] = grouped[b.date] || [];
     grouped[b.date].push(b);
@@ -492,187 +446,6 @@ function ScheduleTab() {
         </div>
       ))}
     </div>
-  );
-}
-
-// ============ SERVICES ============
-function ServicesTab() {
-  const { data: services = [] } = useQuery<Service[]>({ queryKey: ["/api/admin/services"] });
-  const [editing, setEditing] = useState<Service | null>(null);
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="space-y-4 mt-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Services</h1>
-          <p className="text-sm text-muted-foreground">Customers see only active services.</p>
-        </div>
-        <Button onClick={() => { setEditing(null); setOpen(true); }} data-testid="button-add-service">
-          <Plus className="size-4 mr-1" /> Add
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        {services.map((s) => (
-          <Card key={s.id} className="p-4 bg-card flex items-center gap-3 hover-elevate" data-testid={`row-service-${s.id}`}>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-foreground">{s.name}</span>
-                {!s.active && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {formatDuration(s.durationMinutes)} · {s.depositPercent}% deposit
-                {s.priceSmall != null ? (
-                  <span> · S:{gbp(s.priceSmall)} M:{gbp(s.priceMedium ?? s.price)} L:{gbp(s.priceLarge ?? s.price)} XL:{gbp(s.priceXLarge ?? s.price)}</span>
-                ) : (
-                  <span> · {gbp(s.price)}</span>
-                )}
-              </div>
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => { setEditing(s); setOpen(true); }} data-testid={`button-edit-service-${s.id}`}>
-              <Pencil className="size-4" />
-            </Button>
-          </Card>
-        ))}
-      </div>
-
-      {/* key forces a fresh mount per service (or "new") so the dialog's
-          form state actually re-hydrates from `service` on each open —
-          without it React reuses the same instance and the form only
-          ever reflects whichever service it first mounted with. */}
-      <ServiceDialog key={editing?.id ?? "new"} open={open} onClose={() => setOpen(false)} service={editing} />
-    </div>
-  );
-}
-
-function ServiceDialog({ open, onClose, service }: { open: boolean; onClose: () => void; service: Service | null }) {
-  const { toast } = useToast();
-  const [form, setForm] = useState({
-    name: service?.name ?? "",
-    description: service?.description ?? "",
-    durationMinutes: service?.durationMinutes ?? 60,
-    price: service?.price ?? 50,
-    priceSmall: service?.priceSmall ?? service?.price ?? 50,
-    priceMedium: service?.priceMedium ?? service?.price ?? 50,
-    priceLarge: service?.priceLarge ?? service?.price ?? 50,
-    priceXLarge: service?.priceXLarge ?? service?.price ?? 50,
-    depositPercent: service?.depositPercent ?? 50,
-    depositEnabled: service?.depositEnabled ?? true,
-    active: service?.active ?? true,
-    sortOrder: service?.sortOrder ?? 99,
-    imageUrl: service?.imageUrl ?? "",
-  });
-
-  const save = useMutation({
-    mutationFn: async () => {
-      // keep base price in sync with the minimum size price for fallback
-      const body = { ...form, price: Math.min(form.priceSmall, form.priceMedium, form.priceLarge, form.priceXLarge) };
-      if (service) {
-        return (await apiRequest("PATCH", `/api/admin/services/${service.id}`, body)).json();
-      }
-      return (await apiRequest("POST", "/api/admin/services", body)).json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/services"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/services"] });
-      toast({ title: service ? "Service updated" : "Service added" });
-      onClose();
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: async () => (await apiRequest("DELETE", `/api/admin/services/${service!.id}`)).json(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/services"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/services"] });
-      toast({ title: "Service deleted" });
-      onClose();
-    },
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>{service ? "Edit service" : "New service"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-service-name" />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="input-service-desc" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Duration (min)</Label>
-              <Input type="number" min={15} step={15} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} data-testid="input-service-duration" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label>Deposit %</Label>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">Required</span>
-                  <Switch
-                    checked={form.depositEnabled}
-                    onCheckedChange={(v) => setForm({ ...form, depositEnabled: v })}
-                    data-testid="switch-service-deposit-enabled"
-                  />
-                </div>
-              </div>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={form.depositPercent}
-                disabled={!form.depositEnabled}
-                onChange={(e) => setForm({ ...form, depositPercent: Number(e.target.value) })}
-                data-testid="input-service-deposit"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Price by size (£)</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1.5">
-              <div>
-                <Label className="text-xs text-muted-foreground">Small</Label>
-                <Input type="number" min={0} step={1} value={form.priceSmall} onChange={(e) => setForm({ ...form, priceSmall: Number(e.target.value) })} data-testid="input-service-price-small" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Medium</Label>
-                <Input type="number" min={0} step={1} value={form.priceMedium} onChange={(e) => setForm({ ...form, priceMedium: Number(e.target.value) })} data-testid="input-service-price-medium" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Large</Label>
-                <Input type="number" min={0} step={1} value={form.priceLarge} onChange={(e) => setForm({ ...form, priceLarge: Number(e.target.value) })} data-testid="input-service-price-large" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Extra large</Label>
-                <Input type="number" min={0} step={1} value={form.priceXLarge} onChange={(e) => setForm({ ...form, priceXLarge: Number(e.target.value) })} data-testid="input-service-price-xlarge" />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-lg border border-card-border bg-card px-3 py-2">
-            <div>
-              <div className="text-sm font-medium">Show to customers</div>
-              <div className="text-xs text-muted-foreground">Toggle off to temporarily hide</div>
-            </div>
-            <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} data-testid="switch-service-active" />
-          </div>
-        </div>
-        <DialogFooter className="gap-2 sm:gap-0">
-          {service && (
-            <Button variant="outline" onClick={() => remove.mutate()} disabled={remove.isPending} data-testid="button-delete-service">
-              <Trash2 className="size-4 mr-1" /> Delete
-            </Button>
-          )}
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.name} data-testid="button-save-service">
-            {save.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -917,20 +690,6 @@ function ContentTab() {
             <div>
               <Label className="mb-1 block">About Image</Label>
               <ImageDropzone contentKey="about.image" currentUrl={c("about.image", "")} alt="About image" />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* SERVICES */}
-        <AccordionItem value="services" className="border border-border rounded-xl overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 font-display font-bold hover:no-underline">
-            Services page
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-5 space-y-5">
-            <p className="text-xs text-muted-foreground">Individual service prices and descriptions are in the Services tab. Edit intro copy here.</p>
-            <div>
-              <Label className="mb-1 block">Page intro copy <span className="text-xs font-normal text-muted-foreground">— shown above the service list</span></Label>
-              <InlineText contentKey="services.intro" value={c("services.intro", "")} variant="textarea" rows={3} placeholder="Browse our services below and book online." label="Services intro" />
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -1469,7 +1228,7 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
                 value={c(`page.${slug}.faq`, "")}
                 variant="textarea"
                 rows={10}
-                placeholder={"Do you travel outside Cramlington?\nGet in touch with your postcode and I'll confirm.\n\nWhat if my dog is nervous?\nThat's exactly what one-to-one, no-cage grooming is for."}
+                placeholder={"Is the room really exclusive?\nYes — once booked, it's yours for the whole session, no sharing.\n\nWhat happens to my deposit?\nIt comes straight back to you as a bar tab on the night."}
                 label="FAQ"
               />
             </div>
@@ -1516,7 +1275,6 @@ function ReviewsTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-display font-bold text-foreground">{r.authorName}</span>
-                    {r.dogName && <span className="text-xs text-muted-foreground">· {r.dogName}</span>}
                     {!r.active && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
                   </div>
                   <div className="flex gap-0.5 mt-1">
@@ -1548,7 +1306,6 @@ function ReviewDialog({ open, onClose, review }: { open: boolean; onClose: () =>
     authorName: review?.authorName ?? "",
     rating: review?.rating ?? 5,
     body: review?.body ?? "",
-    dogName: review?.dogName ?? "",
     publishedAt: review?.publishedAt ?? today,
     active: review?.active ?? true,
     sortOrder: review?.sortOrder ?? 0,
@@ -1559,7 +1316,6 @@ function ReviewDialog({ open, onClose, review }: { open: boolean; onClose: () =>
       authorName: review?.authorName ?? "",
       rating: review?.rating ?? 5,
       body: review?.body ?? "",
-      dogName: review?.dogName ?? "",
       publishedAt: review?.publishedAt ?? today,
       active: review?.active ?? true,
       sortOrder: review?.sortOrder ?? 0,
@@ -1596,15 +1352,9 @@ function ReviewDialog({ open, onClose, review }: { open: boolean; onClose: () =>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{review ? "Edit review" : "New review"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Author name</Label>
-              <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value })} placeholder="Sarah W." data-testid="input-review-author" />
-            </div>
-            <div>
-              <Label>Dog name <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
-              <Input value={form.dogName ?? ""} onChange={(e) => setForm({ ...form, dogName: e.target.value })} placeholder="Buddy" data-testid="input-review-dog" />
-            </div>
+          <div>
+            <Label>Author name</Label>
+            <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value })} placeholder="Sarah W." data-testid="input-review-author" />
           </div>
           <div>
             <Label>Rating</Label>
@@ -1980,9 +1730,9 @@ type EmailTemplatesForm = {
 };
 
 const PLACEHOLDER_HINT =
-  "Available placeholders: {customer}, {date}, {time}, {service}, {dog}, {breed}, {size}, {deposit}, {balance}, {phone}, {email}, {postcode}, {notes}, {business}, {ownerName}";
+  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {deposit}, {phone}, {email}, {notes}, {business}, {ownerName}";
 const NEW_BOOKING_PLACEHOLDER_HINT =
-  "Available placeholders: {customer}, {date}, {time}, {service}, {dog}, {breed}, {size}, {depositStatus}, {phone}, {email}, {postcode}, {notes}, {business}, {ownerName}";
+  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {depositStatus}, {phone}, {email}, {notes}, {business}, {ownerName}";
 
 function EmailsTab() {
   const { toast } = useToast();
@@ -2554,78 +2304,6 @@ function PolicyTab() {
       <Card className="p-4">
         <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Preview</div>
         <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{preview}</p>
-      </Card>
-    </div>
-  );
-}
-
-// ============ SERVICE AREAS ============
-function ServiceAreasTab() {
-  const { toast } = useToast();
-  const { data: cfg, isLoading } = useQuery<{ outcodes: string[] }>({
-    queryKey: ["/api/admin/service-areas"],
-    queryFn: async () => (await apiRequest("GET", "/api/admin/service-areas")).json(),
-  });
-
-  const [text, setText] = useState<string | null>(null);
-  if (cfg && text === null) setText(cfg.outcodes.join(", "));
-
-  const normalised = (text ?? "")
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-  const deduped = Array.from(new Set(normalised));
-
-  const save = useMutation({
-    mutationFn: async () =>
-      (await apiRequest("POST", "/api/admin/service-areas", { outcodes: deduped })).json(),
-    onSuccess: (data: { outcodes: string[] }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/service-areas"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/brand-config"] });
-      setText(data.outcodes.join(", "));
-      toast({ title: "Saved", description: "Service areas updated." });
-    },
-    onError: (e: any) => toast({ title: "Save failed", description: String(e?.message || e), variant: "destructive" }),
-  });
-
-  if (isLoading || text === null) return <SkeletonRow />;
-
-  return (
-    <div className="space-y-4 mt-3">
-      <Card className="p-4 space-y-4">
-        <div className="flex items-start gap-3">
-          <MapPin className="size-5 text-primary mt-0.5" />
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Service areas</h2>
-            <p className="text-sm text-muted-foreground">
-              Comma-separated UK outcodes Sophie covers. Customers entering postcodes outside this list see a soft warning but can still book.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="areas">Allowed outcodes</Label>
-          <Textarea
-            id="areas"
-            rows={3}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="NE23, NE24, NE25"
-            data-testid="input-service-areas"
-          />
-        </div>
-
-        {deduped.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {deduped.map((o) => (
-              <Badge key={o} variant="secondary" data-testid={`chip-${o}`}>{o}</Badge>
-            ))}
-          </div>
-        )}
-
-        <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-areas">
-          {save.isPending ? <Loader2 className="size-4 mr-2 animate-spin" /> : null} Save
-        </Button>
       </Card>
     </div>
   );

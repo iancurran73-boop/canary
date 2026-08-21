@@ -9,13 +9,13 @@
 
 export interface TenantConfig {
   brand: {
-    /** Full studio/business name — used in page titles and headings */
+    /** Full venue/business name — used in page titles and headings */
     name: string;
     /** Short name for compact contexts (header, footer tagline) */
     shortName: string;
-    /** Hero subheadline / studio tagline */
+    /** Hero subheadline / venue tagline */
     tagline: string;
-    /** Bare domain (no protocol), e.g. "sophiespamperedpaws.co.uk" */
+    /** Bare domain (no protocol), e.g. "thesingingcanary.co.uk" */
     domain: string;
     /** Instagram handle WITHOUT the @ sign */
     instagram?: string;
@@ -36,6 +36,10 @@ export interface TenantConfig {
       accent: string;
       /** Foreground text on accent colour */
       accentFg: string;
+      /** Third neon pop colour, used sparingly (small badges, hover states) */
+      tertiary: string;
+      /** Foreground text on tertiary colour */
+      tertiaryFg: string;
       /** Page background */
       background: string;
       /** Default foreground text colour */
@@ -48,7 +52,7 @@ export interface TenantConfig {
       border: string;
     };
     fonts: {
-      /** Google Fonts family name for display/heading text, e.g. "Cormorant Garamond" */
+      /** Google Fonts family name for display/heading text, e.g. "Bungee" */
       display: string;
       /** Google Fonts family name for body text, e.g. "Inter" */
       body: string;
@@ -56,11 +60,11 @@ export interface TenantConfig {
   };
 
   business: {
-    /** Name of the owner / lead groomer — used in copy throughout the site */
+    /** Name of the owner / venue contact — used in copy throughout the site */
     ownerName: string;
-    /** Phone in E.164 format — used in tel: links, e.g. "+447591134200" */
+    /** Phone in E.164 format — used in tel: links, e.g. "+441912221234" */
     phone: string;
-    /** Human-readable phone for display, e.g. "+44 7591 134200" */
+    /** Human-readable phone for display, e.g. "+44 191 222 1234" */
     phoneDisplay: string;
     /** Contact email address */
     email: string;
@@ -75,8 +79,10 @@ export interface TenantConfig {
   };
 
   /**
-   * Opening hours keyed by day-of-week: 0=Sunday … 6=Saturday.
-   * Set enabled:false for closed days. Use note for "By request" etc.
+   * Opening hours the function room is bookable, keyed by day-of-week:
+   * 0=Sunday … 6=Saturday. Set enabled:false for closed days. This is a
+   * display fallback — the DB working_hours table (Admin > Hours) is the
+   * real source at runtime.
    */
   hours: {
     [day: number]: {
@@ -87,25 +93,18 @@ export interface TenantConfig {
     };
   };
 
-  services: Array<{
-    /** Stable integer ID — must match what is seeded into Supabase */
-    id: number;
-    name: string;
-    description: string;
-    durationMinutes: number;
-    /** Full price in integer pounds (GBP) */
-    price: number;
-    /** Percentage of price taken as deposit, e.g. 50 */
-    depositPercent: number;
-    /** Root-relative image path, e.g. "/img/service-full-groom.png" */
-    imageUrl: string;
-    /** Category label for grouping on the services page */
-    category: string;
-    /** If true, displayed as "from £X" */
-    fromPrice?: boolean;
-    sortOrder: number;
-    active: boolean;
-  }>;
+  /**
+   * There's one bookable thing — the function room itself — not a list of
+   * services. Session length and deposit amount are admin-editable
+   * (Admin > Settings); these are just display fallbacks/defaults.
+   */
+  room: {
+    sessionDurationMinutes: number;
+    depositAmount: number;
+    /** e.g. "as a bar tab on the night" */
+    depositRefundDescription: string;
+    maxPartySize: number;
+  };
 
   copy: {
     heroTitle: string;
@@ -152,7 +151,7 @@ export interface TenantConfig {
   };
 
   seo: {
-    /** Full canonical site URL with protocol, e.g. "https://sophiespamperedpaws.co.uk" */
+    /** Full canonical site URL with protocol, e.g. "https://thesingingcanary.co.uk" */
     siteUrl: string;
     /** Default <title> for pages that don't override it */
     defaultTitle: string;

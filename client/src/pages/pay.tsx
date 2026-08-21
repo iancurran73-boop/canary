@@ -17,12 +17,12 @@ import { Card } from "@/components/ui/card";
 import { Mail, Phone, Clock, CheckCircle2, Loader2, Copy, CreditCard, AlertCircle } from "lucide-react";
 import { gbp, formatDate } from "@/lib/format";
 import { useState } from "react";
-import type { Booking, Service } from "@shared/schema";
+import type { Booking } from "@shared/schema";
 import config from "@/lib/tenant";
 import { useBrand } from "@/lib/brand";
 import { CancellationPolicy } from "@/components/cancellation-policy";
 
-type BookingDetails = Booking & { service?: Service; reference?: string };
+type BookingDetails = Booking & { reference?: string };
 
 const CONTACT_WINDOW = config.payments.contactWindow;
 
@@ -72,8 +72,8 @@ export default function Pay() {
               Thank you, {booking.customerName.split(" ")[0]}.
             </h1>
             <p className="text-muted-foreground mt-3 max-w-md">
-              Your slot has been provisionally held. To secure the booking, please contact {b.ownerName} within{" "}
-              {CONTACT_WINDOW} and they'll send you a payment link for the booking fee.
+              The room has been provisionally held. To secure the booking, please contact {b.ownerName} within{" "}
+              {CONTACT_WINDOW} and they'll send you a payment link for the deposit.
             </p>
           </div>
 
@@ -133,13 +133,12 @@ function BookingSummary({
           {copied === "ref" && <span className="text-xs text-primary ml-1">Copied</span>}
         </button>
       </div>
-      {booking.service && <Row label="Service" value={booking.service.name} />}
+      <Row label="Occasion" value={booking.eventType} />
+      <Row label="Party size" value={String(booking.partySize)} />
       <Row label="Date" value={formatDate(booking.date)} />
       <Row label="Time" value={booking.startTime} />
       <div className="border-t border-border pt-2 mt-2 space-y-1.5">
-        <Row label="Total" value={gbp(booking.totalPrice)} />
-        <Row label="Booking fee" value={gbp(booking.depositAmount)} highlight />
-        <Row label="Balance on the day" value={gbp(booking.balanceDue)} muted />
+        <Row label="Deposit" value={gbp(booking.depositAmount)} highlight />
       </div>
     </div>
   );
@@ -167,12 +166,13 @@ function MvpContactSection({
     `I've just submitted a booking request through the website. My details:`,
     ``,
     `Reference: ${reference}`,
-    `Service: ${booking.service?.name ?? ""}`,
+    `Occasion: ${booking.eventType}`,
+    `Party size: ${booking.partySize}`,
     `Date: ${formatDate(booking.date)}`,
     `Time: ${booking.startTime}`,
-    `Total: ${gbp(booking.totalPrice)} (booking fee ${gbp(booking.depositAmount)})`,
+    `Deposit: ${gbp(booking.depositAmount)}`,
     ``,
-    `Please send me a payment link for the booking fee when you have a moment.`,
+    `Please send me a payment link for the deposit when you have a moment.`,
     ``,
     `Thanks,`,
     booking.customerName,
@@ -196,8 +196,8 @@ function MvpContactSection({
             {email
               ? <>Email {ownerName} quoting reference <strong className="font-mono">{reference}</strong>. </>
               : <>Quote your reference <strong className="font-mono">{reference}</strong> when you get in touch. </>}
-            They'll reply with a secure payment link for your booking fee. Until the booking fee is paid,
-            the slot is only provisionally held.
+            They'll reply with a secure payment link for your deposit. Until the deposit is paid,
+            the room is only provisionally held.
           </p>
         </div>
       </div>
@@ -267,12 +267,12 @@ function SumupPaySection({ booking }: { booking: BookingDetails }) {
             <div className="size-14 rounded-full bg-primary/10 grid place-items-center mb-4">
               <CreditCard className="size-7 text-primary" />
             </div>
-            <p className="text-xs uppercase tracking-[0.22em] text-primary font-bold">Pay your booking fee</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-primary font-bold">Pay your deposit</p>
             <h1 className="font-display text-2xl sm:text-3xl font-bold mt-2 leading-tight">
               Thank you, {booking.customerName.split(" ")[0]}.
             </h1>
             <p className="text-muted-foreground mt-3 max-w-md">
-              Your slot is being held. Pay the booking fee of {gbp(booking.depositAmount)} to confirm — you'll be redirected to SumUp's secure payment page.
+              The room is being held. Pay the {gbp(booking.depositAmount)} deposit to confirm — you'll be redirected to SumUp's secure payment page. It comes straight back to you {config.room.depositRefundDescription}.
             </p>
           </div>
 
@@ -289,7 +289,7 @@ function SumupPaySection({ booking }: { booking: BookingDetails }) {
               {loading ? (
                 <><Loader2 className="size-4 mr-2 animate-spin" /> Redirecting to SumUp…</>
               ) : (
-                <><CreditCard className="size-4 mr-2" /> Pay {gbp(booking.depositAmount)} booking fee</>
+                <><CreditCard className="size-4 mr-2" /> Pay {gbp(booking.depositAmount)} deposit</>
               )}
             </Button>
             {error && (

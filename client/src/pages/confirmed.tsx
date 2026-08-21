@@ -8,14 +8,14 @@ import { gbp, formatDate } from "@/lib/format";
 import config from "@/lib/tenant";
 import { useBrand } from "@/lib/brand";
 import { CancellationPolicy } from "@/components/cancellation-policy";
-import type { Booking, Service } from "@shared/schema";
+import type { Booking } from "@shared/schema";
 
 const { business } = config;
 
 export default function Confirmed() {
   const { id } = useParams<{ id: string }>();
   const b = useBrand();
-  const { data: booking } = useQuery<Booking & { service?: Service }>({
+  const { data: booking } = useQuery<Booking>({
     queryKey: ["/api/public/bookings", id],
     queryFn: async () => {
       const r = await apiRequest("GET", `/api/public/bookings/${id}`);
@@ -45,21 +45,15 @@ export default function Confirmed() {
         )}
 
         <Card className="p-5 text-left mt-6 bg-card">
-          <h2 className="font-display font-bold text-lg mb-4">Appointment details</h2>
+          <h2 className="font-display font-bold text-lg mb-4">Booking details</h2>
           <dl className="space-y-2.5 text-sm">
-            <Row label="Service" value={booking.service?.name ?? ""} />
+            <Row label="Occasion" value={booking.eventType} />
+            <Row label="Party size" value={String(booking.partySize)} />
             <Row label="Date" value={formatDate(booking.date)} />
             <Row label="Time" value={`${booking.startTime} – ${booking.endTime}`} />
-            <Row label="Service area" value={`${business.address.line1}, ${business.address.city} ${business.address.postcode}`} />
+            <Row label="Venue" value={`${business.address.line1}, ${business.address.city} ${business.address.postcode}`} />
             <div className="pt-3 mt-3 border-t border-card-border space-y-2">
-              {booking.depositAmount > 0 ? (
-                <>
-                  <Row label="Paid online" value={gbp(booking.depositAmount)} />
-                  <Row label="Balance on the day" value={gbp(booking.balanceDue)} muted />
-                </>
-              ) : (
-                <Row label="Amount due on the day" value={gbp(booking.balanceDue)} />
-              )}
+              <Row label="Deposit" value={gbp(booking.depositAmount)} />
             </div>
           </dl>
         </Card>

@@ -1,9 +1,9 @@
 /**
  * client/src/pages/how-it-works.tsx
  * ────────────────────────────────────
- * Explains the in-home grooming process step by step. Copy and step photos
- * are all admin-editable via the Content tab (howItWorks.* content keys),
- * falling back to tenant.config.ts defaults.
+ * Explains how booking the function room works, step by step. Copy and step
+ * photos are all admin-editable via the Content tab (howItWorks.* content
+ * keys), falling back to tenant.config.ts defaults.
  */
 
 import { useEffect } from "react";
@@ -11,19 +11,19 @@ import { Link } from "wouter";
 import { SiteShell } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { applySeo, breadcrumb } from "@/lib/seo";
-import { ArrowRight, Home, Settings2, Droplets, Scissors, Plug, Sparkles, PawPrint } from "lucide-react";
+import { ArrowRight, Calendar, Users, CreditCard, PartyPopper, Mic2 } from "lucide-react";
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
 
 const { copy, business } = config;
 
-const STEP_ICONS = [Home, Settings2, Droplets, Scissors, Plug, Sparkles];
+const STEP_ICONS = [Calendar, Users, CreditCard, PartyPopper, Mic2];
 
 const PHOTO_SLOTS = [
-  { key: "howItWorks.photo1", caption: "Getting set up" },
-  { key: "howItWorks.photo2", caption: "Bath time" },
-  { key: "howItWorks.photo3", caption: "All done" },
+  { key: "howItWorks.photo1", caption: "The room" },
+  { key: "howItWorks.photo2", caption: "Grab the mic" },
+  { key: "howItWorks.photo3", caption: "Good times" },
 ];
 
 export default function HowItWorks() {
@@ -38,7 +38,7 @@ export default function HowItWorks() {
   useEffect(() => {
     applySeo({
       title: `How It Works · ${b.brandName} ${business.address.city}`,
-      description: `See exactly how ${b.brandName}'s in-home dog grooming works, from arrival to a clean, happy dog — no van, no salon, all in your own home.`,
+      description: `See exactly how booking ${b.brandName}'s private function room works, from picking a date to grabbing the mic.`,
       path: "/how-it-works",
       jsonLd: [breadcrumb([{ name: "Home", path: "/" }, { name: "How It Works", path: "/how-it-works" }])],
     });
@@ -46,7 +46,7 @@ export default function HowItWorks() {
 
   return (
     <SiteShell>
-      <section className="pt-12 sm:pt-20 pb-10 sm:pb-14 bg-gradient-to-br from-[hsl(35_40%_97%)] to-[hsl(35_40%_92%)]">
+      <section className="pt-12 sm:pt-20 pb-10 sm:pb-14 bg-gradient-to-br from-muted to-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">How it works</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05]">
@@ -61,9 +61,9 @@ export default function HowItWorks() {
                 Book online <ArrowRight className="size-4 ml-1.5" />
               </Button>
             </Link>
-            <Link href="/services">
+            <Link href="/about">
               <Button size="lg" variant="outline" className="rounded-full px-7 py-6 text-base">
-                See services
+                About the room
               </Button>
             </Link>
           </div>
@@ -74,7 +74,7 @@ export default function HowItWorks() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <ol className="space-y-6">
             {steps.map((step, i) => {
-              const Icon = STEP_ICONS[i] ?? PawPrint;
+              const Icon = STEP_ICONS[i] ?? Mic2;
               return (
                 <li key={i} className="flex gap-5 sm:gap-6 items-start">
                   <div className="shrink-0 flex flex-col items-center">
@@ -96,12 +96,12 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-24 bg-[hsl(35_40%_94%)]">
+      <section className="py-16 sm:py-24 bg-muted">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
-            <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">In your own home</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">See it in action</p>
             <h2 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight mt-3 leading-tight">
-              See it in action.
+              What to expect on the night.
             </h2>
           </div>
           <div className="grid sm:grid-cols-3 gap-5">
@@ -113,7 +113,7 @@ export default function HowItWorks() {
                     <img src={url} alt={slot.caption} className="w-full aspect-[4/5] object-cover" loading="lazy" />
                   ) : (
                     <div className="w-full aspect-[4/5] bg-gradient-to-br from-primary/25 via-accent/10 to-primary/35 flex items-center justify-center">
-                      <PawPrint className="size-12 text-white/50" />
+                      <Mic2 className="size-12 text-white/50" />
                     </div>
                   )}
                   <p className="text-center text-sm font-semibold py-3 text-foreground/80">{slot.caption}</p>
@@ -128,7 +128,7 @@ export default function HowItWorks() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">Ready to book?</h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Pick a service and a time that suits you — {b.ownerName} gets notified straight away.
+            Pick a date and time that suits you — {b.ownerName} gets notified straight away.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link href="/book"><Button size="lg" className="rounded-full px-8 py-6 text-base font-semibold">Book online</Button></Link>

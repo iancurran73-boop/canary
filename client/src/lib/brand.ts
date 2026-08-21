@@ -1,11 +1,8 @@
 /**
  * client/src/lib/brand.ts
  * ────────────────────────
- * useBrand() — DB-backed brand/business/policy/service-area config, with
- * tenant.config.ts values as fallbacks. Backed by /api/public/brand-config.
- *
- * isInServiceArea() — normalises a postcode and checks its outcode against
- * the admin-managed allowed list.
+ * useBrand() — DB-backed brand/business/policy config, with tenant.config.ts
+ * values as fallbacks. Backed by /api/public/brand-config.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +19,7 @@ export interface BrandConfig {
   colors: {
     primary: string;
     accent: string;
+    tertiary: string;
     background: string;
     foreground: string;
   };
@@ -34,7 +32,6 @@ export interface BrandConfig {
     refundPercentInsideNotice: number;
     body: string;
   };
-  serviceAreas: string[];
 }
 
 const defaults: BrandConfig = {
@@ -48,6 +45,7 @@ const defaults: BrandConfig = {
   colors: {
     primary: config.brand.colors.primary,
     accent: config.brand.colors.accent,
+    tertiary: config.brand.colors.tertiary,
     background: config.brand.colors.background,
     foreground: config.brand.colors.foreground,
   },
@@ -56,12 +54,11 @@ const defaults: BrandConfig = {
     body: config.brand.fonts.body,
   },
   policy: {
-    cancellationNoticeHours: 24,
+    cancellationNoticeHours: 48,
     refundPercentInsideNotice: 0,
     body:
-      "Cancellations made more than [N] hours before your appointment receive a full booking fee refund. Cancellations within [N] hours are non-refundable.",
+      "Cancellations made more than [N] hours before your booking receive a full deposit refund. Cancellations within [N] hours are non-refundable.",
   },
-  serviceAreas: ["NE22", "NE23", "NE24", "NE25", "NE26", "NE27", "NE28", "NE61", "NE62", "NE63", "NE64", "NE65"],
 };
 
 export function useBrand(): BrandConfig {
@@ -76,21 +73,4 @@ export function useBrand(): BrandConfig {
     retry: 1,
   });
   return data ?? defaults;
-}
-
-/**
- * Normalise a UK postcode and extract its outcode, then check membership
- * in the allowed outcode list. Soft check — caller decides what to do.
- */
-export function isInServiceArea(
-  postcode: string,
-  outcodes: string[]
-): { ok: boolean; outcode: string } {
-  const normalised = postcode.toUpperCase().replace(/\s+/g, "");
-  // Outcode = leading area+district before the inward code (last 3 chars: NLL).
-  // Match the standard UK outward prefix: 1-2 letters, 1-2 digits, optional letter.
-  const m = normalised.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?/);
-  const outcode = m ? m[0] : normalised;
-  const allowed = outcodes.map((o) => o.toUpperCase());
-  return { ok: allowed.includes(outcode), outcode };
 }

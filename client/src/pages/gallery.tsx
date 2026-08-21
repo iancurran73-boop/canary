@@ -1,7 +1,7 @@
 /**
  * client/src/pages/gallery.tsx
  * ─────────────────────────────
- * Gallery of recent grooms.
+ * Photo gallery of the venue and past nights.
  * Primary data source: gallery_items table (via useGalleryItems).
  * Fallback: config.gallery static list when the gallery table is empty/unreachable.
  */
@@ -25,8 +25,8 @@ export default function Gallery() {
 
   useEffect(() => {
     applySeo({
-      title: `Gallery & Recent Grooms · ${brand.name}`,
-      description: `Browse recent dog grooms from ${brand.name}.`,
+      title: `Gallery · ${brand.name}`,
+      description: `Browse photos of the room and past nights at ${brand.name}.`,
       path: "/gallery",
       jsonLd: [breadcrumb([{ name: "Home", path: "/" }, { name: "Gallery", path: "/gallery" }])],
     });
@@ -36,7 +36,7 @@ export default function Gallery() {
     if (dbItems.length > 0) {
       return dbItems.map((item) => ({
         src: item.imageUrl,
-        alt: item.caption ?? "Dog grooming gallery photo",
+        alt: item.caption ?? "Gallery photo",
         category: item.category ?? undefined,
       }));
     }
@@ -63,14 +63,14 @@ export default function Gallery() {
 
   return (
     <SiteShell>
-      <section className="bg-gradient-to-br from-[hsl(35_40%_97%)] to-[hsl(35_40%_92%)] pt-12 sm:pt-20 pb-8">
+      <section className="bg-gradient-to-br from-muted to-background pt-12 sm:pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">Gallery</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05] max-w-3xl">
-            Fresh grooms, <span className="font-serif italic font-medium text-primary">happy dogs</span>.
+            Singing, dancing, <span className="font-serif italic font-medium text-primary">good times</span>.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            A look at recent grooms at {brand.name} — every coat, every breed, every size.
+            A look at the room and past nights at {brand.name}.
           </p>
         </div>
       </section>
@@ -130,14 +130,14 @@ export default function Gallery() {
       <section className="py-16 sm:py-20 bg-foreground text-white text-center">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">
-            Want your dog looking this fresh?
+            Ready for a night like this?
           </h2>
           <p className="text-white/80 mt-3 text-base">
-            Book a groom online and we'll find a time that suits your dog and your day.
+            Book the room online and we'll find a date that suits your crowd.
           </p>
           <Link href="/book">
             <Button size="lg" className="rounded-full px-8 py-6 mt-7 text-base font-semibold shadow-xl">
-              Book your slot <ArrowRight className="size-4 ml-1.5" />
+              Book the room <ArrowRight className="size-4 ml-1.5" />
             </Button>
           </Link>
         </div>

@@ -1,7 +1,7 @@
 /**
  * server/reminderScheduler.ts
  * ─────────────────────────────
- * Polls for confirmed bookings whose appointment is coming up and sends a
+ * Polls for confirmed bookings whose session is coming up and sends a
  * one-off reminder email, gated on Admin > Emails > Reminders.
  *
  * There's no separate cron infrastructure here — the app server is a single
@@ -17,7 +17,7 @@ import type { Booking } from "@shared/schema";
 
 const POLL_MS = 15 * 60 * 1000; // 15 minutes
 
-function appointmentDate(b: Booking): Date {
+function sessionDate(b: Booking): Date {
   const [h, m] = b.startTime.split(":").map(Number);
   const d = new Date(`${b.date}T00:00:00`);
   d.setHours(h, m, 0, 0);
@@ -33,26 +33,23 @@ export async function runReminderSweep(): Promise<void> {
   const now = Date.now();
 
   for (const b of candidates) {
-    const hoursUntil = (appointmentDate(b).getTime() - now) / 3_600_000;
+    const hoursUntil = (sessionDate(b).getTime() - now) / 3_600_000;
 
     if (hoursUntil > hoursBefore) continue; // not due yet, check again next sweep
 
     if (hoursUntil <= 0) {
-      // Appointment already happened (e.g. the server was down over the
+      // Session already happened (e.g. the server was down over the
       // reminder window) — nothing useful to send, just stop tracking it.
       await storage.markBookingReminderSent(b.id);
       continue;
     }
 
-    const service = await storage.getService(b.serviceId);
     const sent = await sendReminderEmail({
       email: b.customerEmail,
       customerName: b.customerName,
-      dogName: b.dogName,
       date: b.date,
       time: b.startTime,
-      serviceName: service?.name ?? "",
-      balanceDue: b.balanceDue.toFixed(2),
+      partySize: b.partySize,
     });
     if (sent) await storage.markBookingReminderSent(b.id);
   }

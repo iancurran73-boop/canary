@@ -1,5 +1,4 @@
 import {
-  services,
   workingHours,
   blockedDates,
   bookings,
@@ -10,7 +9,6 @@ import {
   pages,
 } from "@shared/schema";
 import type {
-  Service, InsertService,
   WorkingHours, InsertWorkingHours,
   BlockedDate, InsertBlockedDate,
   Booking, InsertBooking,
@@ -41,24 +39,12 @@ export const db = drizzle(sqlite);
 
 // --- migrations / setup ---
 sqlite.exec(`
-  CREATE TABLE IF NOT EXISTS services (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    duration_minutes INTEGER NOT NULL,
-    price REAL NOT NULL,
-    deposit_percent INTEGER NOT NULL DEFAULT 50,
-    deposit_enabled INTEGER NOT NULL DEFAULT 1,
-    image_url TEXT DEFAULT '',
-    active INTEGER NOT NULL DEFAULT 1,
-    sort_order INTEGER NOT NULL DEFAULT 0
-  );
   CREATE TABLE IF NOT EXISTS working_hours (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     day_of_week INTEGER NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1,
-    start_time TEXT NOT NULL DEFAULT '09:00',
-    end_time TEXT NOT NULL DEFAULT '17:00'
+    start_time TEXT NOT NULL DEFAULT '19:00',
+    end_time TEXT NOT NULL DEFAULT '23:00'
   );
   CREATE TABLE IF NOT EXISTS blocked_dates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,29 +55,32 @@ sqlite.exec(`
   );
   CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    service_id INTEGER NOT NULL,
     customer_name TEXT NOT NULL,
     customer_email TEXT NOT NULL,
     customer_phone TEXT NOT NULL,
+    event_type TEXT NOT NULL DEFAULT '',
+    party_size INTEGER NOT NULL DEFAULT 1,
     notes TEXT DEFAULT '',
     date TEXT NOT NULL,
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
-    total_price REAL NOT NULL,
     deposit_amount REAL NOT NULL,
-    balance_due REAL NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
     payment_ref TEXT DEFAULT '',
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    sumup_checkout_id TEXT DEFAULT '',
+    reminder_sent_at INTEGER
   );
   CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    studio_name TEXT NOT NULL DEFAULT 'Sophie''s Pampered Paws',
+    studio_name TEXT NOT NULL DEFAULT 'The Singing Canary',
     accepting_bookings INTEGER NOT NULL DEFAULT 1,
-    buffer_minutes INTEGER NOT NULL DEFAULT 15,
-    min_notice_hours INTEGER NOT NULL DEFAULT 24,
-    max_advance_days INTEGER NOT NULL DEFAULT 60,
-    notify_email TEXT NOT NULL DEFAULT 'hello@sophiespamperedpaws.co.uk',
+    session_duration_minutes INTEGER NOT NULL DEFAULT 240,
+    buffer_minutes INTEGER NOT NULL DEFAULT 30,
+    min_notice_hours INTEGER NOT NULL DEFAULT 48,
+    max_advance_days INTEGER NOT NULL DEFAULT 90,
+    deposit_amount REAL NOT NULL DEFAULT 150,
+    notify_email TEXT NOT NULL DEFAULT '',
     calendar_connected INTEGER NOT NULL DEFAULT 0,
     push_enabled INTEGER NOT NULL DEFAULT 0,
     stripe_mode TEXT NOT NULL DEFAULT 'test'
@@ -115,7 +104,6 @@ sqlite.exec(`
     author_name TEXT NOT NULL,
     rating INTEGER NOT NULL DEFAULT 5,
     body TEXT NOT NULL,
-    dog_name TEXT DEFAULT '',
     published_at TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 1,
     sort_order INTEGER NOT NULL DEFAULT 0,
@@ -134,44 +122,19 @@ sqlite.exec(`
   );
 `);
 
-// ALTER TABLE migrations for bookings (columns added in fix 2)
-// SQLite has no IF NOT EXISTS for ADD COLUMN, so we wrap each in try/catch.
-const bookingAlters = [
-  "ALTER TABLE bookings ADD COLUMN address_line1 TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN postcode TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN dog_name TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN dog_breed TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN dog_size TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN sumup_checkout_id TEXT DEFAULT ''",
-  "ALTER TABLE bookings ADD COLUMN reminder_sent_at INTEGER",
-];
-for (const sql of bookingAlters) {
-  try { sqlite.exec(sql); } catch { /* column already exists */ }
-}
-
-// ALTER TABLE migrations for services (size-based pricing columns)
-const serviceAlters = [
-  "ALTER TABLE services ADD COLUMN price_small INTEGER",
-  "ALTER TABLE services ADD COLUMN price_medium INTEGER",
-  "ALTER TABLE services ADD COLUMN price_large INTEGER",
-  "ALTER TABLE services ADD COLUMN price_xlarge INTEGER",
-  "ALTER TABLE services ADD COLUMN deposit_enabled INTEGER NOT NULL DEFAULT 1",
-];
-for (const sql of serviceAlters) {
-  try { sqlite.exec(sql); } catch { /* column already exists */ }
-}
-
 // --- seed defaults if empty ---
 const seedIfEmpty = () => {
   const settingsRow = db.select().from(settings).get();
   if (!settingsRow) {
     db.insert(settings).values({
-      studioName: "Sophie's Pampered Paws",
+      studioName: "The Singing Canary",
       acceptingBookings: true,
-      bufferMinutes: 15,
-      minNoticeHours: 24,
-      maxAdvanceDays: 60,
-      notifyEmail: "hello@sophiespamperedpaws.co.uk",
+      sessionDurationMinutes: 240,
+      bufferMinutes: 30,
+      minNoticeHours: 48,
+      maxAdvanceDays: 90,
+      depositAmount: 150,
+      notifyEmail: "",
       calendarConnected: false,
       pushEnabled: false,
       stripeMode: "test",
@@ -180,29 +143,15 @@ const seedIfEmpty = () => {
 
   const wh = db.select().from(workingHours).all();
   if (wh.length === 0) {
-    // Mon-Sat 09:00-18:00, Sunday off
+    // Thu-Sat 19:00-23:00, rest of the week closed for private hire by default
     for (let d = 0; d < 7; d++) {
       db.insert(workingHours).values({
         dayOfWeek: d,
-        enabled: d !== 0, // Sunday closed
-        startTime: "09:00",
-        endTime: "18:00",
+        enabled: d === 4 || d === 5 || d === 6, // Thu, Fri, Sat
+        startTime: "19:00",
+        endTime: "23:00",
       }).run();
     }
-  }
-
-  const svcs = db.select().from(services).all();
-  if (svcs.length === 0) {
-    const seed: InsertService[] = [
-      // Main grooms (25% deposit) — seed all 4 size prices equal to base price
-      { name: "Full Groom", description: "Full groom — bath, blow-dry, clip or scissor finish, nails, ears and hygiene tidy. Tailored to your dog's breed, coat and temperament.", durationMinutes: 120, price: 30, depositPercent: 25, depositEnabled: true, imageUrl: "", active: true, sortOrder: 1, priceSmall: 30, priceMedium: 30, priceLarge: 30, priceXLarge: 30 },
-      { name: "Bath & Tidy Up", description: "Bath, blow-dry, brush out and a light tidy of face, feet and sanitary. Perfect between full grooms.", durationMinutes: 120, price: 30, depositPercent: 25, depositEnabled: true, imageUrl: "", active: true, sortOrder: 2, priceSmall: 30, priceMedium: 30, priceLarge: 30, priceXLarge: 30 },
-      { name: "Bath & Deshed", description: "Deep bath, deshed treatment and thorough blow-dry. Great for double-coated breeds shedding heavily.", durationMinutes: 120, price: 30, depositPercent: 25, depositEnabled: true, imageUrl: "", active: true, sortOrder: 3, priceSmall: 30, priceMedium: 30, priceLarge: 30, priceXLarge: 30 },
-      // Add-ons (no deposit)
-      { name: "Nail Clipping", description: "Quick nail trim — gentle handling and treats throughout. Add-on or stand-alone visit.", durationMinutes: 15, price: 10, depositPercent: 0, depositEnabled: false, imageUrl: "", active: true, sortOrder: 4, priceSmall: 10, priceMedium: 10, priceLarge: 10, priceXLarge: 10 },
-      { name: "Feet Trim", description: "Tidy of paw fur and pads — keeps things clean between full grooms.", durationMinutes: 15, price: 10, depositPercent: 0, depositEnabled: false, imageUrl: "", active: true, sortOrder: 5, priceSmall: 10, priceMedium: 10, priceLarge: 10, priceXLarge: 10 },
-    ];
-    for (const s of seed) db.insert(services).values(s).run();
   }
 
   const pgs = db.select().from(pages).all();
@@ -211,40 +160,16 @@ const seedIfEmpty = () => {
     const coreSeed: InsertPage[] = [
       { slug: "home", navLabel: "Home", path: "/", kind: "core", layout: null, sortOrder: 0, visible: true },
       { slug: "how-it-works", navLabel: "How It Works", path: "/how-it-works", kind: "core", layout: null, sortOrder: 1, visible: true },
-      { slug: "services", navLabel: "Services", path: "/services", kind: "core", layout: null, sortOrder: 2, visible: true },
-      { slug: "gallery", navLabel: "Gallery", path: "/gallery", kind: "core", layout: null, sortOrder: 3, visible: true },
-      { slug: "about", navLabel: "About", path: "/about", kind: "core", layout: null, sortOrder: 4, visible: true },
-      { slug: "contact", navLabel: "Contact", path: "/contact", kind: "core", layout: null, sortOrder: 5, visible: true },
+      { slug: "gallery", navLabel: "Gallery", path: "/gallery", kind: "core", layout: null, sortOrder: 2, visible: true },
+      { slug: "about", navLabel: "About", path: "/about", kind: "core", layout: null, sortOrder: 3, visible: true },
+      { slug: "contact", navLabel: "Contact", path: "/contact", kind: "core", layout: null, sortOrder: 4, visible: true },
     ];
     for (const p of coreSeed) db.insert(pages).values({ ...p, createdAt: now }).run();
   }
 };
 seedIfEmpty();
 
-// One-time backfill: for existing service rows where size prices are NULL,
-// set them equal to the base price. This is idempotent (only touches NULLs).
-try {
-  sqlite.exec(`
-    UPDATE services
-    SET
-      price_small  = price,
-      price_medium = price,
-      price_large  = price,
-      price_xlarge = price
-    WHERE price_small IS NULL
-  `);
-} catch (e) {
-  console.warn("[storage] backfill size prices failed:", e);
-}
-
 export interface IStorage {
-  // services
-  listServices(activeOnly?: boolean): Promise<Service[]>;
-  getService(id: number): Promise<Service | undefined>;
-  createService(s: InsertService): Promise<Service>;
-  updateService(id: number, s: Partial<InsertService>): Promise<Service | undefined>;
-  deleteService(id: number): Promise<boolean>;
-
   // working hours
   listWorkingHours(): Promise<WorkingHours[]>;
   upsertWorkingHours(rows: InsertWorkingHours[]): Promise<WorkingHours[]>;
@@ -266,9 +191,7 @@ export interface IStorage {
   getCustomerHistory(email: string, phone: string, excludeBookingId?: number): Promise<{
     visits: number;
     lastVisitDate: string | null;
-    lastDogName: string | null;
-    lastDogBreed: string | null;
-    lastServiceId: number | null;
+    lastEventType: string | null;
   }>;
 
   // settings
@@ -305,27 +228,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async listServices(activeOnly = false) {
-    const rows = activeOnly
-      ? db.select().from(services).where(eq(services.active, true)).orderBy(asc(services.sortOrder)).all()
-      : db.select().from(services).orderBy(asc(services.sortOrder)).all();
-    return rows;
-  }
-  async getService(id: number) {
-    return db.select().from(services).where(eq(services.id, id)).get();
-  }
-  async createService(s: InsertService) {
-    return db.insert(services).values(s).returning().get();
-  }
-  async updateService(id: number, s: Partial<InsertService>) {
-    db.update(services).set(s).where(eq(services.id, id)).run();
-    return this.getService(id);
-  }
-  async deleteService(id: number) {
-    const r = db.delete(services).where(eq(services.id, id)).run();
-    return r.changes > 0;
-  }
-
   async listWorkingHours() {
     return db.select().from(workingHours).orderBy(asc(workingHours.dayOfWeek)).all();
   }
@@ -400,9 +302,7 @@ export class DatabaseStorage implements IStorage {
     return {
       visits: past.length,
       lastVisitDate: last ? last.date : null,
-      lastDogName: last ? (last.dogName || null) : null,
-      lastDogBreed: last ? (last.dogBreed || null) : null,
-      lastServiceId: last ? last.serviceId : null,
+      lastEventType: last ? (last.eventType || null) : null,
     };
   }
 
@@ -513,7 +413,7 @@ export const storage = new DatabaseStorage();
 
 export type EmailConfig = {
   enabled: boolean;
-  // Address on a domain verified with Resend, e.g. bookings@yourbusiness.co.uk.
+  // Address on a domain verified with Resend, e.g. bookings@yourvenue.co.uk.
   // The Resend API key itself lives in the RESEND_API_KEY env var, not here.
   fromEmail: string;
   fromName: string;
@@ -538,25 +438,24 @@ const EMAIL_TEMPLATES_KEY = "email_templates";
 const defaultEmailConfig: EmailConfig = {
   enabled: false,
   fromEmail: "",
-  fromName: "Sophie's Pampered Paws",
+  fromName: "The Singing Canary",
   bccOwner: false,
   ownerEmail: "",
   remindersEnabled: false,
-  reminderHoursBefore: 24,
+  reminderHoursBefore: 48,
 };
 
 const defaultEmailTemplates: EmailTemplates = {
   customerConfirm: {
-    subject: "Your appointment at {business} on {date}",
+    subject: "Your booking at {business} on {date}",
     body: `Hi {customer},
 
-Thanks for booking with {business}! Here are your appointment details:
+Thanks for booking the function room at {business}! Here are your details:
 
 Date: {date} at {time}
-Service: {service}
-For: {dog} ({size})
-Booking fee paid: £{deposit}
-Balance due on the day: £{balance}
+Party size: {partySize}
+Occasion: {eventType}
+Deposit paid: £{deposit} — this comes back to you as a bar tab on the night
 
 If you need to change or cancel, please get in touch as soon as you can.
 
@@ -570,13 +469,11 @@ See you soon,
 Customer: {customer}
 Phone: {phone}
 Email: {email}
-Postcode: {postcode}
 
 Date: {date} at {time}
-Service: {service}
-Dog: {dog} ({breed}, {size})
+Party size: {partySize}
+Occasion: {eventType}
 Deposit paid: £{deposit}
-Balance due: £{balance}
 
 Notes: {notes}`,
   },
@@ -587,11 +484,10 @@ Notes: {notes}`,
 Customer: {customer}
 Phone: {phone}
 Email: {email}
-Postcode: {postcode}
 
 Date: {date} at {time}
-Service: {service}
-Dog: {dog} ({breed}, {size})
+Party size: {partySize}
+Occasion: {eventType}
 {depositStatus}
 
 Notes: {notes}
@@ -599,14 +495,13 @@ Notes: {notes}
 Review and confirm it in the admin panel.`,
   },
   appointmentReminder: {
-    subject: "Reminder: your appointment at {business}",
+    subject: "Reminder: your booking at {business}",
     body: `Hi {customer},
 
-Just a reminder that {dog} is booked in with {business}:
+Just a reminder that your function room booking is coming up at {business}:
 
 Date: {date} at {time}
-Service: {service}
-Balance due on the day: £{balance}
+Party size: {partySize}
 
 If you need to change or cancel, please get in touch as soon as you can.
 
@@ -614,14 +509,13 @@ See you soon,
 {ownerName}`,
   },
   cancellation: {
-    subject: "Your appointment at {business} has been cancelled",
+    subject: "Your booking at {business} has been cancelled",
     body: `Hi {customer},
 
-This is to confirm your appointment has been cancelled:
+This is to confirm your function room booking has been cancelled:
 
 Date: {date} at {time}
-Service: {service}
-For: {dog}
+Occasion: {eventType}
 
 If this wasn't you, or you'd like to rebook, just get in touch or head back to the site.
 

@@ -1,11 +1,7 @@
 import { getEmailConfig, getEmailTemplates, getBusinessConfig } from "./storage";
 
-// Resend's HTTP API, not raw SMTP. Railway (or the network it sits on)
-// blocks outbound SMTP entirely — both port 587 (STARTTLS) and 465 (SSL)
-// timed out identically in testing, which is the signature of a blanket
-// port block rather than a config problem. An HTTPS API call on port 443
-// sidesteps that completely, since that's the same kind of connection the
-// app itself already needs to serve traffic.
+// Resend's HTTP API, not raw SMTP — see sophiespamperedpaws for why (Railway
+// blocks outbound SMTP entirely; an HTTPS API call on port 443 sidesteps it).
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 async function sendViaResend(opts: { from: string; to: string; bcc?: string; subject: string; text: string }): Promise<void> {
@@ -41,23 +37,19 @@ export async function sendBookingEmails(booking: any) {
   const templates = getEmailTemplates();
   const business = getBusinessConfig() ?? {};
   const vars = {
-    business: business.name ?? "Sophie's Pampered Paws",
-    ownerName: business.ownerName ?? "Sophie",
+    business: business.name ?? "The Singing Canary",
+    ownerName: business.ownerName ?? "The team",
     customer: booking.customerName ?? "",
     phone: booking.phone ?? "",
     email: booking.email ?? "",
-    postcode: booking.postcode ?? "",
     date: booking.date ?? "",
     time: booking.time ?? "",
-    service: booking.serviceName ?? "",
-    dog: booking.dogName ?? "",
-    breed: booking.breed ?? "",
-    size: booking.size ?? "",
+    eventType: booking.eventType ?? "",
+    partySize: booking.partySize ?? "",
     deposit: booking.depositPaid ?? "0.00",
-    balance: booking.balanceDue ?? "0.00",
     notes: booking.notes ?? "",
   };
-  const from = `${cfg.fromName ?? business.name ?? "Sophie's Pampered Paws"} <${cfg.fromEmail}>`;
+  const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
 
   // To customer
   if (booking.email) {
@@ -83,36 +75,29 @@ export async function sendBookingEmails(booking: any) {
   }
 }
 
-// Fired the moment any booking is created, to the owner only — regardless of
-// whether it needs a deposit or manual confirmation. This is distinct from
+// Fired the moment any booking is created, to the owner only — distinct from
 // the ownerAlert above, which only fires once a booking is actually
-// confirmed: without this, a no-deposit booking sits pending with nobody
+// confirmed. Without this, a pending booking sits unconfirmed with nobody
 // told it exists until the owner happens to check the admin panel.
 export async function sendNewBookingAlert(booking: any): Promise<void> {
   const cfg = getEmailConfig();
   if (!cfg || !cfg.enabled || !cfg.fromEmail || !cfg.ownerEmail) return;
   const templates = getEmailTemplates();
   const business = getBusinessConfig() ?? {};
-  const depositDue = parseFloat(booking.depositPaid || "0");
   const vars = {
-    business: business.name ?? "Sophie's Pampered Paws",
-    ownerName: business.ownerName ?? "Sophie",
+    business: business.name ?? "The Singing Canary",
+    ownerName: business.ownerName ?? "The team",
     customer: booking.customerName ?? "",
     phone: booking.phone ?? "",
     email: booking.email ?? "",
-    postcode: booking.postcode ?? "",
     date: booking.date ?? "",
     time: booking.time ?? "",
-    service: booking.serviceName ?? "",
-    dog: booking.dogName ?? "",
-    breed: booking.breed ?? "",
-    size: booking.size ?? "",
+    eventType: booking.eventType ?? "",
+    partySize: booking.partySize ?? "",
     notes: booking.notes ?? "",
-    depositStatus: depositDue > 0
-      ? `Awaiting deposit of £${booking.depositPaid}`
-      : "No deposit required — awaiting your confirmation",
+    depositStatus: `Awaiting deposit of £${booking.depositPaid}`,
   };
-  const from = `${cfg.fromName ?? business.name ?? "Sophie's Pampered Paws"} <${cfg.fromEmail}>`;
+  const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
     await sendViaResend({
       from, to: cfg.ownerEmail,
@@ -122,7 +107,7 @@ export async function sendNewBookingAlert(booking: any): Promise<void> {
   } catch (e) { console.error("[email] new booking alert failed", e); }
 }
 
-// Appointment reminder, sent to the customer only. Returns whether it was
+// Booking reminder, sent to the customer only. Returns whether it was
 // actually sent, so the reminder scheduler only marks a booking as reminded
 // once the send genuinely succeeds — a transient failure gets retried on
 // the next sweep instead of silently being treated as delivered.
@@ -133,16 +118,14 @@ export async function sendReminderEmail(booking: any): Promise<boolean> {
   const templates = getEmailTemplates();
   const business = getBusinessConfig() ?? {};
   const vars = {
-    business: business.name ?? "Sophie's Pampered Paws",
-    ownerName: business.ownerName ?? "Sophie",
+    business: business.name ?? "The Singing Canary",
+    ownerName: business.ownerName ?? "The team",
     customer: booking.customerName ?? "",
     date: booking.date ?? "",
     time: booking.time ?? "",
-    service: booking.serviceName ?? "",
-    dog: booking.dogName ?? "",
-    balance: booking.balanceDue ?? "0.00",
+    partySize: booking.partySize ?? "",
   };
-  const from = `${cfg.fromName ?? business.name ?? "Sophie's Pampered Paws"} <${cfg.fromEmail}>`;
+  const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
     await sendViaResend({
       from, to: booking.email,
@@ -165,15 +148,14 @@ export async function sendCancellationEmail(booking: any): Promise<void> {
   const templates = getEmailTemplates();
   const business = getBusinessConfig() ?? {};
   const vars = {
-    business: business.name ?? "Sophie's Pampered Paws",
-    ownerName: business.ownerName ?? "Sophie",
+    business: business.name ?? "The Singing Canary",
+    ownerName: business.ownerName ?? "The team",
     customer: booking.customerName ?? "",
     date: booking.date ?? "",
     time: booking.time ?? "",
-    service: booking.serviceName ?? "",
-    dog: booking.dogName ?? "",
+    eventType: booking.eventType ?? "",
   };
-  const from = `${cfg.fromName ?? business.name ?? "Sophie's Pampered Paws"} <${cfg.fromEmail}>`;
+  const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
     await sendViaResend({
       from, to: booking.email,
@@ -196,7 +178,7 @@ export async function sendTestEmail(toOverride?: string) {
   await sendViaResend({
     from,
     to: toOverride ?? cfg.ownerEmail ?? cfg.fromEmail,
-    subject: "Test email from Pampered Paws admin",
+    subject: "Test email from The Singing Canary admin",
     text: "If you can read this, your Resend setup is working.",
   });
 }

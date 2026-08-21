@@ -8,27 +8,28 @@
       These generic values serve as fallbacks for non-JS crawlers that don't execute scripts.
       Edit tenant.config.ts → seo.* to change them for your tenant.
     -->
-    <title>Sophie's Pampered Paws · Mobile Dog Grooming · Cramlington</title>
-    <meta name="description" content="Friendly, professional mobile dog grooming across Cramlington and Northumberland. Book online." />
+    <title>The Singing Canary · Karaoke &amp; Function Room · Newcastle</title>
+    <meta name="description" content="Newcastle's home of karaoke, dancing and good times. Book our private function room for birthdays, hen dos, work parties and more." />
     <meta name="robots" content="index, follow" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_GB" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <!-- Neutral greyscale defaults so the first paint is neutral rather than
-         coloured-then-corrected. BrandThemeProvider applies tenant DB values on mount. -->
+    <!-- Neutral dark defaults so the first paint matches this tenant's
+         dark-mode-first theme rather than flashing white before correction.
+         BrandThemeProvider applies the real tenant DB values on mount. -->
     <style>
       :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 10%;
-        --primary: 0 0% 20%;
-        --primary-foreground: 0 0% 98%;
-        --accent: 0 0% 92%;
-        --accent-foreground: 0 0% 10%;
-        --muted: 0 0% 96%;
-        --muted-foreground: 0 0% 40%;
-        --border: 0 0% 90%;
+        --background: 240 14% 5%;
+        --foreground: 44 35% 94%;
+        --primary: 42 100% 50%;
+        --primary-foreground: 0 0% 8%;
+        --accent: 330 100% 50%;
+        --accent-foreground: 0 0% 8%;
+        --muted: 240 10% 12%;
+        --muted-foreground: 240 5% 65%;
+        --border: 240 10% 20%;
       }
       body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
     </style>
