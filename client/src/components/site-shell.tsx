@@ -132,7 +132,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <BrandMark className="h-28 sm:h-32 lg:h-40 w-auto rounded-full text-white drop-shadow-md transition-transform group-hover:scale-[1.02]" />
             <div className="hidden md:block leading-tight">
               <div className="font-display font-extrabold text-white text-xl lg:text-2xl tracking-tight">{b.brandName}</div>
-              <div className="text-xs lg:text-sm italic font-serif text-white/90 mt-0.5">{b.tagline}</div>
+              <div className="text-xs lg:text-sm accent-italic font-serif text-white/90 mt-0.5">{b.tagline}</div>
             </div>
           </Link>
 
@@ -227,7 +227,7 @@ function SiteFooter() {
         <div>
           <BrandMark className="h-24 w-auto rounded-full text-white mb-4" />
           <p className="font-display font-bold text-lg text-white">{b.brandName}</p>
-          <p className="font-serif italic text-sm text-white/70 mt-1">{b.tagline}</p>
+          <p className="font-serif accent-italic text-sm text-white/70 mt-1">{b.tagline}</p>
         </div>
         <div>
           <h4 className="font-display font-bold text-sm uppercase tracking-[0.18em] text-accent mb-3">Find us</h4>

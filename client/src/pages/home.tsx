@@ -111,7 +111,7 @@ export default function Home() {
             </p>
             <h1 className="font-display font-extrabold tracking-tight leading-[0.95] text-[clamp(2.75rem,8vw,6rem)]">
               {heroTitle.split(" ").slice(0, -2).join(" ")}{" "}
-              <span className="font-serif italic font-medium text-accent">
+              <span className="font-serif accent-italic font-medium text-accent">
                 {heroTitle.split(" ").slice(-2).join(" ")}
               </span>
             </h1>
@@ -169,7 +169,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">Welcome to {b.brandName}</p>
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight mt-3 leading-tight">
-            Grab the mic, <span className="font-serif italic font-medium text-primary">own the night</span>
+            Grab the mic, <span className="font-serif accent-italic font-medium text-primary">own the night</span>
           </h2>
           <p className="mt-4 font-display font-bold text-xl sm:text-2xl text-secondary">Singing · Dancing · Good Times</p>
           <div className="mt-6 max-w-3xl mx-auto space-y-4 text-lg text-muted-foreground leading-relaxed">
@@ -186,7 +186,7 @@ export default function Home() {
           <div className="text-center max-w-3xl mx-auto mb-12">
             <p className="text-xs uppercase tracking-[0.28em] font-bold">Why book with us</p>
             <h2 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight mt-3 leading-tight">
-              A night built for <span className="font-serif italic font-medium text-primary">your crowd</span>.
+              A night built for <span className="font-serif accent-italic font-medium text-primary">your crowd</span>.
             </h2>
           </div>
 
@@ -223,7 +223,7 @@ export default function Home() {
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-accent font-bold">Book online</p>
             <h2 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight mt-3 leading-tight">
-              Reserve your night in <span className="font-serif italic font-medium text-accent">under 60 seconds</span>.
+              Reserve your night in <span className="font-serif accent-italic font-medium text-accent">under 60 seconds</span>.
             </h2>
             <p className="mt-5 text-white/80 text-lg leading-relaxed max-w-lg">
               Pick a date, tell us the occasion — your room is locked in with a £150 deposit.{" "}
@@ -255,7 +255,7 @@ export default function Home() {
             <div className="relative rounded-md shadow-2xl w-full aspect-[4/3] bg-gradient-to-br from-primary/40 via-accent/15 to-primary/50 flex flex-col items-center justify-center overflow-hidden p-8">
               <Mic2 className="size-24 text-white/40" strokeWidth={1.2} />
               <p className="mt-4 text-white font-display font-bold text-xl text-center">Grab the mic</p>
-              <p className="text-white/80 font-serif italic text-sm text-center">at {b.brandName}</p>
+              <p className="text-white/80 font-serif accent-italic text-sm text-center">at {b.brandName}</p>
             </div>
             <div className="absolute -bottom-5 -left-5 sm:-left-8 bg-card text-foreground rounded-xl p-4 shadow-xl flex items-center gap-3">
               <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -288,7 +288,7 @@ export default function Home() {
                       <Star key={i} className="size-4 fill-accent" />
                     ))}
                   </div>
-                  <blockquote className="font-serif italic text-lg leading-relaxed text-foreground/85">
+                  <blockquote className="font-serif accent-italic text-lg leading-relaxed text-foreground/85">
                     "{r.body}"
                   </blockquote>
                   <figcaption className="mt-5 pt-5 border-t border-card-border">

@@ -2245,6 +2245,7 @@ type BrandingConfig = {
     border: string;
   };
   fonts: { display: string; body: string };
+  italicAccent: boolean;
 };
 
 function BrandingTab() {
@@ -2339,6 +2340,14 @@ function BrandingTab() {
           {colorField("muted", "Card / surface")}
           {colorField("mutedFg", "Card text (muted)")}
           {colorField("border", "Border")}
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-card-border bg-card px-3 py-2">
+          <div>
+            <div className="text-sm font-medium">Italic headline accents</div>
+            <div className="text-xs text-muted-foreground">e.g. "own <em>the night</em>" — turn off for a straighter look</div>
+          </div>
+          <Switch checked={form.italicAccent} onCheckedChange={(v) => setForm({ ...form, italicAccent: v })} data-testid="switch-italic-accent" />
         </div>
 
         <Button onClick={() => save.mutate(form)} disabled={save.isPending} data-testid="button-save-branding">

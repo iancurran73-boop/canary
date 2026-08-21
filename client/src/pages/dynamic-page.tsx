@@ -237,7 +237,7 @@ function TestimonialsLayout({ title, intro }: { title: string; intro: string }) 
                   <div className="flex gap-0.5 text-accent mb-4">
                     {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="size-4 fill-accent" />)}
                   </div>
-                  <blockquote className="font-serif italic text-lg leading-relaxed text-foreground/85">"{r.body}"</blockquote>
+                  <blockquote className="font-serif accent-italic text-lg leading-relaxed text-foreground/85">"{r.body}"</blockquote>
                   <figcaption className="mt-5 pt-5 border-t border-card-border">
                     <p className="font-display font-bold text-sm">{r.authorName}</p>
                   </figcaption>

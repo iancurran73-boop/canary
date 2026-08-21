@@ -33,6 +33,7 @@ export interface BrandConfig {
     display: string;
     body: string;
   };
+  italicAccent: boolean;
   policy: {
     cancellationNoticeHours: number;
     refundPercentInsideNotice: number;
@@ -65,6 +66,7 @@ const defaults: BrandConfig = {
     display: config.brand.fonts.display,
     body: config.brand.fonts.body,
   },
+  italicAccent: config.brand.italicAccent ?? true,
   policy: {
     cancellationNoticeHours: 48,
     refundPercentInsideNotice: 0,

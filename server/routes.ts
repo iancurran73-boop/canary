@@ -665,6 +665,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const n = v === undefined ? NaN : parseInt(v, 10);
     return Number.isFinite(n) ? n : fallback;
   };
+  const boolVal = async (key: string, fallback: boolean) => {
+    const v = await storage.getContentValue(key);
+    return v === undefined ? fallback : v === "true";
+  };
 
   const defaultPolicyBody =
     "Cancellations made more than [N] hours before your booking receive a full deposit refund. Cancellations within [N] hours are non-refundable.";
@@ -697,6 +701,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       display: await val("brand.font.display", tc.brand.fonts.display),
       body: await val("brand.font.body", tc.brand.fonts.body),
     },
+    italicAccent: await boolVal("brand.italicAccent", tc.brand.italicAccent ?? true),
   });
 
   const readPolicy = async () => ({
@@ -753,10 +758,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         display: z.string().optional(),
         body: z.string().optional(),
       }).optional(),
+      italicAccent: z.boolean().optional(),
     });
     const parse = schema.safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
-    const { colors, fonts } = parse.data;
+    const { colors, fonts, italicAccent } = parse.data;
     if (colors?.primary !== undefined) await storage.setContentValue("brand.color.primary", colors.primary);
     if (colors?.primaryFg !== undefined) await storage.setContentValue("brand.color.primaryFg", colors.primaryFg);
     if (colors?.accent !== undefined) await storage.setContentValue("brand.color.accent", colors.accent);
@@ -770,6 +776,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (colors?.border !== undefined) await storage.setContentValue("brand.color.border", colors.border);
     if (fonts?.display !== undefined) await storage.setContentValue("brand.font.display", fonts.display);
     if (fonts?.body !== undefined) await storage.setContentValue("brand.font.body", fonts.body);
+    if (italicAccent !== undefined) await storage.setContentValue("brand.italicAccent", String(italicAccent));
     res.json({ ok: true, ...(await readBranding()) });
   });
 
@@ -803,6 +810,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ...business,
       colors: branding.colors,
       fonts: branding.fonts,
+      italicAccent: branding.italicAccent,
       policy,
     });
   });

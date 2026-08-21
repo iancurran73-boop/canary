@@ -36,6 +36,7 @@ const config: TenantConfig = {
       display: "Cabinet Grotesk",
       body: "Satoshi",
     },
+    italicAccent: true,
   },
 
   business: {

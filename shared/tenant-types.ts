@@ -57,6 +57,8 @@ export interface TenantConfig {
       /** Google Fonts family name for body text, e.g. "Inter" */
       body: string;
     };
+    /** Whether headline accent phrases render in italic. Admin-editable. */
+    italicAccent?: boolean;
   };
 
   business: {

@@ -55,6 +55,7 @@
   --font-display: 'Bricolage Grotesque', sans-serif;
   --font-serif: 'Bricolage Grotesque', sans-serif; /* italic accent flourish reuses the display face */
   --font-mono: ui-monospace, Menlo, monospace;
+  --accent-italic: italic; /* toggled to "normal" in Admin > Branding */
   --radius: 0.375rem;
   --shadow-2xs: 0 1px 2px hsl(15 21% 3% / 0.20);
   --shadow-xs: 0 1px 3px hsl(15 21% 3% / 0.24);
@@ -161,6 +162,12 @@
 }
 .marquee-track {
   animation: marquee-scroll 28s linear infinite;
+}
+
+/* Headline accent style — reads --accent-italic so Admin > Branding can
+   toggle it site-wide without touching every page's markup. */
+.accent-italic {
+  font-style: var(--accent-italic, italic);
 }
 
 /**

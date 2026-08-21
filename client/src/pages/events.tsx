@@ -42,7 +42,7 @@ export default function Events() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <p className="text-xs uppercase tracking-[0.28em] text-primary font-bold">What's on</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05] max-w-3xl">
-            Upcoming <span className="font-serif italic font-medium text-primary">events</span>.
+            Upcoming <span className="font-serif accent-italic font-medium text-primary">events</span>.
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             Theme nights, karaoke specials and live events at {brand.name}. Want the room for a private night instead?{" "}

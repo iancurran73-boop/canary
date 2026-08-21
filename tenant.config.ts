@@ -40,6 +40,9 @@ const config: TenantConfig = {
       display: "Bricolage Grotesque",
       body: "Work Sans",
     },
+    // Headline accent phrases ("own the night", "get in touch") render in
+    // italic by default — toggle off in Admin > Branding for a straighter look.
+    italicAccent: true,
   },
 
   business: {

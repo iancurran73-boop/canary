@@ -61,6 +61,9 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
     root.style.setProperty("--font-display", `'${brand.fonts.display}', sans-serif`);
     root.style.setProperty("--font-sans", `'${brand.fonts.body}', system-ui, sans-serif`);
     root.style.setProperty("--font-serif", `'${brand.fonts.display}', sans-serif`);
+
+    // Headline accent italic — toggled in Admin > Branding.
+    root.style.setProperty("--accent-italic", brand.italicAccent ? "italic" : "normal");
   }, [
     brand.colors.primary,
     brand.colors.primaryFg,
@@ -74,6 +77,7 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
     brand.colors.border,
     brand.fonts.display,
     brand.fonts.body,
+    brand.italicAccent,
   ]);
 
   useEffect(() => {
