@@ -155,7 +155,7 @@ export default function Contact() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 bg-foreground text-white text-center">
+      <section className="py-16 sm:py-20 bg-[hsl(var(--sidebar))] text-white text-center">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">
             Skip the back-and-forth.

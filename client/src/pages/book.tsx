@@ -34,7 +34,7 @@ export default function Book() {
   return (
     <SiteShell>
       {/* Page header */}
-      <section className="bg-gradient-to-br from-foreground via-foreground/90 to-foreground text-white pt-12 sm:pt-20 pb-12">
+      <section className="bg-gradient-to-br from-[hsl(var(--sidebar))] via-[hsl(var(--sidebar))] to-primary/30 text-white pt-12 sm:pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-accent font-bold">Online booking</p>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.05]">

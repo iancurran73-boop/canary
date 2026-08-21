@@ -218,7 +218,7 @@ export default function Home() {
       </section>
 
       {/* BOOKING CTA */}
-      <section className="bg-foreground text-white py-16 sm:py-24">
+      <section className="bg-[hsl(var(--sidebar))] text-white py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-accent font-bold">Book online</p>
