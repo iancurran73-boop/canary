@@ -163,26 +163,6 @@
   animation: marquee-scroll 28s linear infinite;
 }
 
-/* Ticket-stub button — circular notches cut from the left/right edges,
-   like a torn admission ticket, instead of a generic gradient pill. */
-.btn-ticket {
-  position: relative;
-}
-.btn-ticket::before,
-.btn-ticket::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  background: hsl(var(--background));
-  border-radius: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-.btn-ticket::before { left: -6px; }
-.btn-ticket::after { right: -6px; }
-
 /**
  * Using the elevate system.
  * Automatic contrast adjustment.

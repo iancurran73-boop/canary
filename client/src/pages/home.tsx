@@ -120,7 +120,7 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/book">
-                <Button size="lg" className="btn-ticket rounded-full px-8 py-6 text-base font-semibold shadow-xl">
+                <Button size="lg" className="rounded-full px-8 py-6 text-base font-semibold shadow-xl">
                   Book the room <ArrowRight className="size-4 ml-1.5" />
                 </Button>
               </Link>
