@@ -18,18 +18,19 @@ const config: TenantConfig = {
     logoPath: "/img/logo.png",
     favicon: "/favicon.png",
     colors: {
-      // HSL "H S% L%" — sampled directly from the real logo and venue photo.
-      primary: "42 100% 50%",    // canary gold      ~ #ffb100
-      primaryFg: "0 0% 8%",
-      accent: "330 100% 50%",    // hot pink/magenta ~ #fd007f
-      accentFg: "0 0% 8%",
-      tertiary: "190 100% 50%",  // neon cyan-blue   ~ #00d4ff
-      tertiaryFg: "0 0% 8%",
-      background: "240 14% 5%",  // near-black       ~ #0c0c10
-      foreground: "44 35% 94%",  // warm off-white   ~ #f5f2ea
-      muted: "240 10% 12%",
-      mutedFg: "240 5% 65%",
-      border: "240 10% 20%",
+      // HSL "H S% L%" — neon bar palette: electric magenta + cyan surge on a
+      // deep charcoal/violet base, volt green reserved for sparing highlights.
+      primary: "312 100% 50%",   // electric magenta ~ #ff00cc
+      primaryFg: "0 0% 0%",
+      accent: "180 100% 50%",    // cyan surge       ~ #00ffff
+      accentFg: "0 0% 0%",
+      tertiary: "111 100% 54%",  // volt green       ~ #39ff14 — use sparingly
+      tertiaryFg: "0 0% 0%",
+      background: "250 20% 6%",  // deep charcoal    ~ #0d0c12
+      foreground: "240 14% 90%", // crisp off-white  ~ #e2e2e9
+      muted: "257 41% 12%",      // dark violet surface ~ #19122b
+      mutedFg: "257 15% 70%",
+      border: "257 30% 22%",
     },
     fonts: {
       // Bungee carries the neon poster/party feel; Inter keeps body copy
