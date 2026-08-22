@@ -11,26 +11,43 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ImageIcon, CheckCircle2, Trash2 } from "lucide-react";
 
 interface ImageDropzoneProps {
-  /** Content key to write the URL to, e.g. "home.heroImage" */
-  contentKey: string;
-  /** Current image URL (from c(key, fallback)) */
+  /** Content key to write the URL to, e.g. "home.heroImage" — omit when using onChange instead. */
+  contentKey?: string;
+  /** Current image URL (from c(key, fallback), or from local form state). */
   currentUrl?: string;
   /** Alt text for the thumbnail preview */
   alt?: string;
+  /**
+   * Use instead of contentKey when the image belongs to local form state
+   * rather than the content table (e.g. one field of a record being edited
+   * in a dialog, like an event's flyer). Called with "" on remove.
+   */
+  onChange?: (url: string) => void;
+  /** Overrides the data-testid suffix; falls back to contentKey. */
+  testId?: string;
 }
 
-export function ImageDropzone({ contentKey, currentUrl, alt = "Preview" }: ImageDropzoneProps) {
+export function ImageDropzone({ contentKey, currentUrl, alt = "Preview", onChange, testId }: ImageDropzoneProps) {
   const { uploadImage, setImage } = useContentMutations();
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const id = testId ?? contentKey ?? "image";
+
+  async function save(url: string) {
+    if (onChange) {
+      onChange(url);
+    } else if (contentKey) {
+      await setImage(contentKey, url);
+    }
+  }
 
   async function handleRemove() {
     if (!window.confirm("Remove this image?")) return;
     try {
-      await setImage(contentKey, "");
+      await save("");
       toast({ title: "Image removed" });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Could not remove image";
@@ -47,7 +64,7 @@ export function ImageDropzone({ contentKey, currentUrl, alt = "Preview" }: Image
     setSaved(false);
     try {
       const url = await uploadImage(file);
-      await setImage(contentKey, url);
+      await save(url);
       setSaved(true);
       toast({ title: "Image saved", description: "Your image has been uploaded." });
       setTimeout(() => setSaved(false), 3000);
@@ -98,7 +115,7 @@ export function ImageDropzone({ contentKey, currentUrl, alt = "Preview" }: Image
             aria-label="Remove image"
             title="Remove image"
             className="absolute top-1.5 right-1.5 z-10 grid place-items-center size-7 rounded-full bg-white/90 text-destructive shadow-sm ring-1 ring-destructive/20 hover:bg-white hover:ring-destructive/40 transition-colors"
-            data-testid={`button-remove-image-${contentKey}`}
+            data-testid={`button-remove-image-${id}`}
           >
             <Trash2 className="size-4" />
           </button>
@@ -156,7 +173,7 @@ export function ImageDropzone({ contentKey, currentUrl, alt = "Preview" }: Image
           capture="environment"
           className="sr-only"
           onChange={onInputChange}
-          data-testid={`input-image-${contentKey}`}
+          data-testid={`input-image-${id}`}
         />
       </div>
     </div>

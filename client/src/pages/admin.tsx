@@ -1601,8 +1601,8 @@ function EventDialog({ open, onClose, event }: { open: boolean; onClose: () => v
             <Textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What's happening, any entry details…" data-testid="input-event-description" />
           </div>
           <div>
-            <Label>Image URL <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
-            <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="/img/photos/…" data-testid="input-event-image" />
+            <Label className="mb-1 block">Flyer / photo <span className="text-muted-foreground font-normal text-xs">(optional — some events have their own flyer)</span></Label>
+            <ImageDropzone currentUrl={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} alt="Event flyer" testId="event-image" />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-card-border bg-card px-3 py-2">
             <div>
