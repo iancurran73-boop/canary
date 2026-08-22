@@ -165,14 +165,17 @@ const seedIfEmpty = () => {
 
   const wh = db.select().from(workingHours).all();
   if (wh.length === 0) {
-    // Thu-Sat 19:00-23:00, rest of the week closed for private hire by default
+    // Fri/Sat get three fixed 4-hour session slots (afternoon, evening, late
+    // night through to 3am); every other day is closed by default, with one
+    // disabled placeholder row so the admin can turn it on later.
     for (let d = 0; d < 7; d++) {
-      db.insert(workingHours).values({
-        dayOfWeek: d,
-        enabled: d === 4 || d === 5 || d === 6, // Thu, Fri, Sat
-        startTime: "19:00",
-        endTime: "23:00",
-      }).run();
+      if (d === 5 || d === 6) { // Fri, Sat
+        db.insert(workingHours).values({ dayOfWeek: d, enabled: true, startTime: "13:00", endTime: "17:00" }).run();
+        db.insert(workingHours).values({ dayOfWeek: d, enabled: true, startTime: "18:00", endTime: "22:00" }).run();
+        db.insert(workingHours).values({ dayOfWeek: d, enabled: true, startTime: "23:00", endTime: "03:00" }).run();
+      } else {
+        db.insert(workingHours).values({ dayOfWeek: d, enabled: false, startTime: "19:00", endTime: "23:00" }).run();
+      }
     }
   }
 

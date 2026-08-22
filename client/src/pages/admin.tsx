@@ -481,10 +481,15 @@ function AvailabilityTab() {
     },
   });
 
-  const update = (i: number, patch: Partial<WorkingHours>) => {
-    const next = [...current];
-    next[i] = { ...next[i], ...patch };
-    setLocal(next);
+  const updateSlot = (id: number, patch: Partial<WorkingHours>) => {
+    setLocal(current.map((w) => (w.id === id ? { ...w, ...patch } : w)));
+  };
+  const addSlot = (dayOfWeek: number) => {
+    const tempId = -(Date.now() + Math.floor(Math.random() * 1000));
+    setLocal([...current, { id: tempId, dayOfWeek, enabled: true, startTime: "13:00", endTime: "17:00" }]);
+  };
+  const removeSlot = (id: number) => {
+    setLocal(current.filter((w) => w.id !== id));
   };
 
   const [blockDate, setBlockDate] = useState(todayIso());
@@ -510,22 +515,40 @@ function AvailabilityTab() {
       </div>
 
       <Card className="p-2 bg-card divide-y divide-card-border">
-        {current.sort((a, b) => a.dayOfWeek - b.dayOfWeek).map((h, idx) => (
-          <div key={h.dayOfWeek} className="flex flex-wrap items-center gap-3 p-3" data-testid={`row-hours-${h.dayOfWeek}`}>
-            <div className="w-20 sm:w-24 font-medium text-foreground">{DAYS[h.dayOfWeek]}</div>
-            <Switch checked={h.enabled} onCheckedChange={(v) => update(idx, { enabled: v })} data-testid={`switch-day-${h.dayOfWeek}`} />
-            {h.enabled ? (
-              <div className="flex items-center gap-2 w-full pl-[5.75rem] sm:w-auto sm:flex-1 sm:ml-1 sm:pl-0">
-                <Input type="time" value={h.startTime} onChange={(e) => update(idx, { startTime: e.target.value })} className="w-28 min-w-0" />
-                <span className="text-muted-foreground shrink-0">to</span>
-                <Input type="time" value={h.endTime} onChange={(e) => update(idx, { endTime: e.target.value })} className="w-28 min-w-0" />
+        {DAYS.map((dayName, d) => {
+          const rows = current.filter((w) => w.dayOfWeek === d).sort((a, b) => a.startTime.localeCompare(b.startTime));
+          return (
+            <div key={d} className="p-3 space-y-2" data-testid={`row-hours-${d}`}>
+              <div className="flex items-center justify-between">
+                <div className="font-medium text-foreground">{dayName}</div>
+                <Button size="sm" variant="ghost" onClick={() => addSlot(d)} data-testid={`button-add-slot-${d}`}>
+                  <Plus className="size-3.5 mr-1" /> Add slot
+                </Button>
               </div>
-            ) : (
-              <span className="text-sm text-muted-foreground ml-1">Closed</span>
-            )}
-          </div>
-        ))}
+              {rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Closed</p>
+              ) : (
+                <div className="space-y-2">
+                  {rows.map((w) => (
+                    <div key={w.id} className="flex flex-wrap items-center gap-2" data-testid={`row-slot-${w.id}`}>
+                      <Switch checked={w.enabled} onCheckedChange={(v) => updateSlot(w.id, { enabled: v })} data-testid={`switch-slot-${w.id}`} />
+                      <div className="flex items-center gap-2 w-full pl-[2.75rem] sm:w-auto sm:flex-1 sm:ml-1 sm:pl-0">
+                        <Input type="time" value={w.startTime} onChange={(e) => updateSlot(w.id, { startTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-slot-start-${w.id}`} />
+                        <span className="text-muted-foreground shrink-0">to</span>
+                        <Input type="time" value={w.endTime} onChange={(e) => updateSlot(w.id, { endTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-slot-end-${w.id}`} />
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => removeSlot(w.id)} data-testid={`button-remove-slot-${w.id}`}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </Card>
+      <p className="text-xs text-muted-foreground -mt-3">A day can have more than one slot — e.g. an afternoon session and a separate evening one. Each is a distinct bookable start time.</p>
       {local && (
         <div className="flex gap-2">
           <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-hours">

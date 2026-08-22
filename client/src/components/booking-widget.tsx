@@ -16,6 +16,16 @@ import config from "@/lib/tenant";
 
 type Step = "datetime" | "details" | "review";
 
+// Friendly label for a slot's start time, purely cosmetic — helps
+// distinguish same-day slots (e.g. an afternoon session vs a late one)
+// in the dropdown.
+function slotLabel(startTime: string): string {
+  const hour = Number(startTime.split(":")[0]);
+  if (hour < 17) return "Afternoon";
+  if (hour < 23) return "Evening";
+  return "Late night";
+}
+
 export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
   const { toast } = useToast();
   const b = useBrand();
@@ -184,7 +194,9 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
                   </SelectTrigger>
                   <SelectContent>
                     {avail.slots.map((t) => (
-                      <SelectItem key={t} value={t} data-testid={`option-time-${t}`}>{t}</SelectItem>
+                      <SelectItem key={t} value={t} data-testid={`option-time-${t}`}>
+                        {avail.slots.length > 1 ? `${slotLabel(t)} · ${t}` : t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

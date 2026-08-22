@@ -19,6 +19,7 @@ import {
   insertReviewSchema,
   insertEventSchema,
 } from "@shared/schema";
+import type { WorkingHours, BlockedDate } from "@shared/schema";
 import { PAGE_LAYOUT_IDS } from "@shared/page-layouts";
 import { requireAdminAuth, issueSessionCookie, clearSessionCookie, checkLoginRateLimit, verifyPasscode } from "./adminAuth";
 import { z } from "zod";
@@ -29,11 +30,29 @@ const toMinutes = (t: string) => {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 };
-const fromMinutes = (m: number) => {
-  const h = Math.floor(m / 60).toString().padStart(2, "0");
-  const mm = (m % 60).toString().padStart(2, "0");
-  return `${h}:${mm}`;
-};
+// Whether a named slot (e.g. "23:00"-"03:00") is still bookable on the given
+// calendar day: far enough from now to satisfy min notice, and not covered
+// by a blocked-date range. Handles slots that cross midnight (end <= start).
+function slotIsBookable(
+  slot: WorkingHours,
+  dayMidnight: Date,
+  now: Date,
+  minNoticeMs: number,
+  blocksThatDay: BlockedDate[]
+): boolean {
+  const slotStart = new Date(dayMidnight);
+  slotStart.setMinutes(toMinutes(slot.startTime));
+  if (slotStart.getTime() - now.getTime() < minNoticeMs) return false;
+
+  const startMin = toMinutes(slot.startTime);
+  let endMin = toMinutes(slot.endTime);
+  if (endMin <= startMin) endMin += 1440; // crosses midnight
+
+  return !blocksThatDay.some((bd) => {
+    if (!bd.startTime || !bd.endTime) return true; // whole day blocked
+    return startMin < toMinutes(bd.endTime) && endMin > toMinutes(bd.startTime);
+  });
+}
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Map a stored booking row into the shape sendBookingEmails expects.
@@ -66,7 +85,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
-  // Available session start-times on a given date.
+  // Available session start-times on a given date. Each day-of-week has a
+  // fixed set of named slots (e.g. weekends: 13:00-17:00, 18:00-22:00,
+  // 23:00-03:00) rather than a continuous open window — the customer picks
+  // one, not an arbitrary time.
   app.get("/api/public/availability", async (req, res) => {
     const date = String(req.query.date || "");
     if (!date) return res.status(400).json({ error: "date required" });
@@ -74,7 +96,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const settings = await storage.getSettings();
     if (!settings.acceptingBookings) return res.json({ slots: [] });
 
-    // notice window
     const target = new Date(date + "T00:00:00");
     const now = new Date();
     const minNoticeMs = settings.minNoticeHours * 3600_000;
@@ -82,14 +103,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (target.getTime() - now.getTime() > maxAdvanceMs) return res.json({ slots: [] });
 
     const dow = target.getDay();
-    const wh = (await storage.listWorkingHours()).find((w) => w.dayOfWeek === dow);
-    if (!wh || !wh.enabled) return res.json({ slots: [] });
-
-    const dayStart = toMinutes(wh.startTime);
-    const dayEnd = toMinutes(wh.endTime);
-    const dur = settings.sessionDurationMinutes;
-    const buffer = settings.bufferMinutes;
-    const step = 15; // 15-minute increments
+    const daySlots = (await storage.listWorkingHours()).filter((w) => w.dayOfWeek === dow && w.enabled);
+    if (daySlots.length === 0) return res.json({ slots: [] });
 
     // Existing bookings that day — the room is exclusive for the whole day,
     // not just the booked session, so any pending/confirmed booking at all
@@ -99,36 +114,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     );
     if (dayBookings.length > 0) return res.json({ slots: [], durationMinutes: settings.sessionDurationMinutes });
 
-    // Blocked
-    const blocks = (await storage.listBlockedDates(date, date));
+    const blocks = await storage.listBlockedDates(date, date);
 
-    const slots: string[] = [];
-    for (let t = dayStart; t + dur <= dayEnd; t += step) {
-      const slotEnd = t + dur;
+    const slots = daySlots
+      .filter((w) => slotIsBookable(w, target, now, minNoticeMs, blocks))
+      .map((w) => w.startTime)
+      .sort();
 
-      // Min notice
-      const slotDate = new Date(target);
-      slotDate.setMinutes(t);
-      if (slotDate.getTime() - now.getTime() < minNoticeMs) continue;
-
-      // Conflict with blocked
-      const blocked = blocks.some((bd) => {
-        if (!bd.startTime || !bd.endTime) return true; // whole day
-        const bs = toMinutes(bd.startTime);
-        const be = toMinutes(bd.endTime);
-        return t < be && slotEnd > bs;
-      });
-      if (blocked) continue;
-
-      slots.push(fromMinutes(t));
-    }
-
-    res.json({ slots, durationMinutes: dur });
+    res.json({ slots, durationMinutes: settings.sessionDurationMinutes });
   });
 
   // Cheap Y/N availability for a date range, so the date picker can grey out
   // fully-booked days upfront instead of making people tap through each one.
-  // Mirrors the single-date logic above but skips full slot enumeration.
   app.get("/api/public/availability-range", async (req, res) => {
     const from = String(req.query.from || "");
     const to = String(req.query.to || "");
@@ -136,17 +133,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const settings = await storage.getSettings();
     const wh = await storage.listWorkingHours();
-    const whByDay = new Map(wh.map((w) => [w.dayOfWeek, w]));
+    const slotsByDay = new Map<number, WorkingHours[]>();
+    for (const w of wh) {
+      if (!w.enabled) continue;
+      const list = slotsByDay.get(w.dayOfWeek) ?? [];
+      list.push(w);
+      slotsByDay.set(w.dayOfWeek, list);
+    }
+
     const dayBookings = (await storage.listBookings(from, to)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
     const bookedDates = new Set(dayBookings.map((b) => b.date));
     const blocks = await storage.listBlockedDates(from, to);
-    const blockedWholeDay = new Set(blocks.filter((bd) => !bd.startTime || !bd.endTime).map((bd) => bd.date));
+    const blocksByDate = new Map<string, BlockedDate[]>();
+    for (const bd of blocks) {
+      const list = blocksByDate.get(bd.date) ?? [];
+      list.push(bd);
+      blocksByDate.set(bd.date, list);
+    }
 
     const now = new Date();
     const minNoticeMs = settings.minNoticeHours * 3600_000;
-    const dur = settings.sessionDurationMinutes;
 
     const unavailable: string[] = [];
     if (settings.acceptingBookings) {
@@ -154,20 +162,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const end = new Date(to + "T00:00:00");
       while (cursor.getTime() <= end.getTime()) {
         const dateStr = cursor.toISOString().slice(0, 10);
-        const w = whByDay.get(cursor.getDay());
-        let ok = !!w && w.enabled && !bookedDates.has(dateStr) && !blockedWholeDay.has(dateStr);
-        if (ok && w) {
-          const dayStart = toMinutes(w.startTime);
-          const dayEnd = toMinutes(w.endTime);
-          const latestStart = dayEnd - dur;
-          if (latestStart < dayStart) {
-            ok = false;
-          } else {
-            const latestSlot = new Date(cursor);
-            latestSlot.setMinutes(latestStart);
-            if (latestSlot.getTime() - now.getTime() < minNoticeMs) ok = false;
-          }
-        }
+        const daySlots = slotsByDay.get(cursor.getDay()) ?? [];
+        const dateBlocks = blocksByDate.get(dateStr) ?? [];
+        const ok = daySlots.length > 0 && !bookedDates.has(dateStr) &&
+          daySlots.some((w) => slotIsBookable(w, cursor, now, minNoticeMs, dateBlocks));
         if (!ok) unavailable.push(dateStr);
         cursor.setDate(cursor.getDate() + 1);
       }
@@ -197,9 +195,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const settings = await storage.getSettings();
     if (!settings.acceptingBookings) return res.status(400).json({ error: "Not currently taking bookings" });
 
-    const startMin = toMinutes(data.startTime);
-    const endMin = startMin + settings.sessionDurationMinutes;
-    const endTime = fromMinutes(endMin);
+    // The requested start must match one of that day-of-week's defined
+    // slots — its own endTime defines the session length, not a fixed
+    // global duration (slots can differ, e.g. the 23:00-03:00 late slot).
+    const dow = new Date(data.date + "T00:00:00").getDay();
+    const matchingSlot = (await storage.listWorkingHours()).find(
+      (w) => w.dayOfWeek === dow && w.enabled && w.startTime === data.startTime
+    );
+    if (!matchingSlot) return res.status(400).json({ error: "That start time is no longer available" });
+    const endTime = matchingSlot.endTime;
 
     // Final check (race protection) — the room is exclusive for the whole
     // day, so any existing pending/confirmed booking that date blocks this one.
