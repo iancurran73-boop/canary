@@ -717,16 +717,16 @@ function ContentTab() {
             </div>
             <div className="grid sm:grid-cols-3 gap-4">
               <div>
-                <Label className="mb-1 block">Photo 1 — Getting set up</Label>
-                <ImageDropzone contentKey="howItWorks.photo1" currentUrl={c("howItWorks.photo1", "")} alt="Getting set up" />
+                <Label className="mb-1 block">Photo 1 — The room</Label>
+                <ImageDropzone contentKey="howItWorks.photo1" currentUrl={c("howItWorks.photo1", "")} alt="The room" />
               </div>
               <div>
-                <Label className="mb-1 block">Photo 2 — Bath time</Label>
-                <ImageDropzone contentKey="howItWorks.photo2" currentUrl={c("howItWorks.photo2", "")} alt="Bath time" />
+                <Label className="mb-1 block">Photo 2 — Grab the mic</Label>
+                <ImageDropzone contentKey="howItWorks.photo2" currentUrl={c("howItWorks.photo2", "")} alt="Grab the mic" />
               </div>
               <div>
-                <Label className="mb-1 block">Photo 3 — All done</Label>
-                <ImageDropzone contentKey="howItWorks.photo3" currentUrl={c("howItWorks.photo3", "")} alt="All done" />
+                <Label className="mb-1 block">Photo 3 — Good times</Label>
+                <ImageDropzone contentKey="howItWorks.photo3" currentUrl={c("howItWorks.photo3", "")} alt="Good times" />
               </div>
             </div>
           </AccordionContent>

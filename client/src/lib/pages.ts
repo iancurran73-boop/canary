@@ -44,3 +44,13 @@ export function usePages(): SitePage[] {
   });
   return data ?? FALLBACK_PAGES;
 }
+
+// The current nav label for a core page, by slug — so CTAs and SEO copy
+// elsewhere that reference a core page by name stay in sync if it's renamed
+// in Admin > Pages, instead of using a hardcoded string.
+export function useNavLabel(slug: string): string {
+  const pages = usePages();
+  return pages.find((p) => p.slug === slug)?.navLabel
+    ?? FALLBACK_PAGES.find((p) => p.slug === slug)?.navLabel
+    ?? slug;
+}

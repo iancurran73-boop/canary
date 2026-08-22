@@ -15,6 +15,7 @@ import { ArrowRight, Calendar, Users, CreditCard, PartyPopper, Mic2 } from "luci
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
+import { useNavLabel } from "@/lib/pages";
 
 const { copy, business } = config;
 
@@ -29,6 +30,7 @@ const PHOTO_SLOTS = [
 export default function HowItWorks() {
   const { c } = useContent();
   const b = useBrand();
+  const navLabel = useNavLabel("how-it-works");
 
   const title = c("howItWorks.title", copy.howItWorksTitle);
   const intro = c("howItWorks.intro", copy.howItWorksIntro);
@@ -37,12 +39,12 @@ export default function HowItWorks() {
 
   useEffect(() => {
     applySeo({
-      title: `How It Works · ${b.brandName} ${business.address.city}`,
+      title: `${navLabel} · ${b.brandName} ${business.address.city}`,
       description: `See exactly how booking ${b.brandName}'s private function room works, from picking a date to grabbing the mic.`,
       path: "/how-it-works",
-      jsonLd: [breadcrumb([{ name: "Home", path: "/" }, { name: "How It Works", path: "/how-it-works" }])],
+      jsonLd: [breadcrumb([{ name: "Home", path: "/" }, { name: navLabel, path: "/how-it-works" }])],
     });
-  }, []);
+  }, [navLabel]);
 
   return (
     <SiteShell>

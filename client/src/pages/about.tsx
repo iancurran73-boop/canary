@@ -13,12 +13,14 @@ import { ArrowRight, Mic2, Users, PartyPopper, MapPin } from "lucide-react";
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
+import { useNavLabel } from "@/lib/pages";
 
 const { copy, business } = config;
 
 export default function About() {
   const { c } = useContent();
   const b = useBrand();
+  const howItWorksLabel = useNavLabel("how-it-works");
   const aboutTitle = c("about.title", copy.aboutTitle);
   const aboutBody = c("about.body", copy.aboutBody);
   const aboutImage = c("about.image", "/img/photos/venue.jpg");
@@ -61,7 +63,7 @@ export default function About() {
               </Link>
               <Link href="/how-it-works">
                 <Button size="lg" variant="outline" className="rounded-full px-7 py-6 text-base">
-                  How it works
+                  {howItWorksLabel}
                 </Button>
               </Link>
             </div>

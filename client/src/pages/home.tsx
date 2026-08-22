@@ -15,6 +15,7 @@ import { applySeo, localBusinessJsonLd, breadcrumb } from "@/lib/seo";
 import config from "@/lib/tenant";
 import { useContent } from "@/lib/content";
 import { useBrand } from "@/lib/brand";
+import { useNavLabel } from "@/lib/pages";
 import type { Review } from "@shared/schema";
 
 // Resolve public-folder photos against Vite's BASE_URL so paths work both
@@ -51,6 +52,7 @@ const { copy, business, brand } = config;
 export default function Home() {
   const { c } = useContent();
   const b = useBrand();
+  const howItWorksLabel = useNavLabel("how-it-works");
   const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ["/api/public/reviews"],
   });
@@ -126,7 +128,7 @@ export default function Home() {
               </Link>
               <Link href="/how-it-works">
                 <Button size="lg" variant="outline" className="rounded-full px-7 py-6 text-base font-medium bg-white/10 hover:bg-white/20 border-white/30 text-white">
-                  How it works
+                  {howItWorksLabel}
                 </Button>
               </Link>
             </div>
