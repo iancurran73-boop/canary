@@ -52,6 +52,7 @@ export default function Contact() {
   const instagram = c("contact.instagram", b.instagram ?? "");
   const hoursNote = c("contact.hoursNote", "");
   const venueImage = c("contact.image", "/img/photos/venue.jpg");
+  const mapQuery = encodeURIComponent(`${addressLine1}, ${city} ${postcode}`);
 
   useEffect(() => {
     applySeo({
@@ -149,6 +150,15 @@ export default function Contact() {
                 alt={b.brandName}
                 className="w-full h-auto block"
                 loading="lazy"
+              />
+            </div>
+            <div className="rounded-md overflow-hidden border border-card-border shadow-sm">
+              <iframe
+                title={`Map to ${b.brandName}`}
+                src={`https://maps.google.com/maps?q=${mapQuery}&output=embed`}
+                className="w-full h-72 sm:h-96 border-0 block"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           </div>
