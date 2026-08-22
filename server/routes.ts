@@ -10,7 +10,7 @@ import {
   type EmailConfig,
   type EmailTemplates,
 } from "./storage";
-import { sendBookingEmails, sendNewBookingAlert, sendCancellationEmail, sendTestEmail } from "./email";
+import { sendBookingEmails, sendNewBookingAlert, sendCancellationEmail, sendTestEmail, verifySmtpConnection } from "./email";
 import {
   insertBlockedDateSchema,
   insertSettingsSchema,
@@ -935,73 +935,41 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Checks Resend's own state directly (API key validity + domain
-  // verification) instead of relying on interpreting an email-send error.
-  // Doesn't send anything, so it's safe to run repeatedly while debugging.
+  // Actually attempts an SMTP connection + login (no email sent) instead of
+  // relying on interpreting an email-send error. Safe to run repeatedly.
   app.get("/api/admin/email-diagnostics", async (_req, res) => {
-    const apiKey = process.env.RESEND_API_KEY;
     const cfg = getEmailConfig();
-    const fromDomain = cfg.fromEmail.includes("@") ? cfg.fromEmail.split("@")[1] : null;
+    const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
     const result: {
       enabled: boolean;
       fromEmail: string;
       ownerEmail: string;
-      apiKeySet: boolean;
-      apiKeyValid: boolean | null;
-      domains: { name: string; status: string }[];
-      fromDomainVerified: boolean | null;
+      smtpConfigured: boolean;
+      smtpConnectionOk: boolean | null;
       error: string | null;
     } = {
       enabled: cfg.enabled,
       fromEmail: cfg.fromEmail,
       ownerEmail: cfg.ownerEmail,
-      apiKeySet: !!apiKey,
-      apiKeyValid: null,
-      domains: [],
-      fromDomainVerified: null,
+      smtpConfigured,
+      smtpConnectionOk: null,
       error: null,
     };
 
-    if (!apiKey) {
-      result.error = "RESEND_API_KEY is not set on the server (check Railway > Variables).";
+    if (!smtpConfigured) {
+      result.error = "SMTP_HOST, SMTP_USER and SMTP_PASS must be set on the server (check Railway > Variables).";
       return res.json(result);
-    }
-    if (!fromDomain) {
-      result.error = "From email in Admin > Emails is missing or not a valid address.";
     }
 
     try {
-      const r = await fetch("https://api.resend.com/domains", {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      if (r.status === 401 || r.status === 403) {
-        result.apiKeyValid = false;
-        result.error = `Resend rejected this API key (${r.status}). It may be wrong, revoked, or from a different Resend account.`;
-        return res.json(result);
-      }
-      if (!r.ok) {
-        const text = await r.text().catch(() => "");
-        result.error = `Resend error ${r.status}: ${text.slice(0, 300)}`;
-        return res.json(result);
-      }
-      result.apiKeyValid = true;
-      const data = await r.json() as { data?: { name: string; status: string }[] };
-      result.domains = (data.data ?? []).map((d) => ({ name: d.name, status: d.status }));
-      if (fromDomain) {
-        const match = result.domains.find((d) => d.name === fromDomain);
-        result.fromDomainVerified = match?.status === "verified";
-        if (!match) {
-          result.error = `The domain "${fromDomain}" (from your From email) hasn't been added to this Resend account at all.`;
-        } else if (match.status !== "verified") {
-          result.error = `The domain "${fromDomain}" is added to Resend but its status is "${match.status}", not "verified". Check the DNS records Resend asked for.`;
-        }
-      }
-      res.json(result);
+      await verifySmtpConnection();
+      result.smtpConnectionOk = true;
     } catch (e: any) {
-      result.error = `Could not reach Resend: ${String(e?.message || e)}`;
-      res.json(result);
+      result.smtpConnectionOk = false;
+      result.error = `Could not connect or log in: ${String(e?.message || e)}`;
     }
+    res.json(result);
   });
 
   return httpServer;

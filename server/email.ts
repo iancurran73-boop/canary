@@ -1,30 +1,43 @@
 import { getEmailConfig, getEmailTemplates, getBusinessConfig } from "./storage";
+import nodemailer from "nodemailer";
 
-// Resend's HTTP API, not raw SMTP — see sophiespamperedpaws for why (Railway
-// blocks outbound SMTP entirely; an HTTPS API call on port 443 sidesteps it).
-const RESEND_API_URL = "https://api.resend.com/emails";
-
-async function sendViaResend(opts: { from: string; to: string; bcc?: string; subject: string; text: string }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is not set on the server");
-  const res = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: opts.from,
-      to: [opts.to],
-      ...(opts.bcc ? { bcc: [opts.bcc] } : {}),
-      subject: opts.subject,
-      text: opts.text,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Resend error ${res.status}: ${body.slice(0, 300)}`);
+// Sends via the mailbox's own SMTP server (e.g. Fasthosts Livemail), not a
+// third-party API — configured entirely through env vars, never committed.
+// SMTP_HOST/SMTP_PORT/SMTP_SECURE/SMTP_USER/SMTP_PASS must all be set on the
+// server (Railway > Variables) for this to work.
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+function getTransporter() {
+  if (transporter) return transporter;
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 465);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) {
+    throw new Error("SMTP_HOST, SMTP_USER and SMTP_PASS must be set on the server");
   }
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: process.env.SMTP_SECURE !== "false", // default true (port 465 SSL)
+    auth: { user, pass },
+  });
+  return transporter;
+}
+
+async function sendViaSmtp(opts: { from: string; to: string; bcc?: string; subject: string; text: string }): Promise<void> {
+  await getTransporter().sendMail({
+    from: opts.from,
+    to: opts.to,
+    bcc: opts.bcc,
+    subject: opts.subject,
+    text: opts.text,
+  });
+}
+
+// Checks the SMTP connection + login actually works, without sending
+// anything — used by Admin > Emails > "Check setup".
+export async function verifySmtpConnection(): Promise<void> {
+  await getTransporter().verify();
 }
 
 function render(tmpl: string, vars: Record<string, string | number | undefined>): string {
@@ -55,7 +68,7 @@ export async function sendBookingEmails(booking: any) {
   // To customer
   if (booking.email) {
     try {
-      await sendViaResend({
+      await sendViaSmtp({
         from, to: booking.email,
         bcc: cfg.bccOwner && cfg.ownerEmail ? cfg.ownerEmail : undefined,
         subject: render(templates.customerConfirm.subject, vars),
@@ -67,7 +80,7 @@ export async function sendBookingEmails(booking: any) {
   // To owner
   if (cfg.ownerEmail) {
     try {
-      await sendViaResend({
+      await sendViaSmtp({
         from, to: cfg.ownerEmail,
         subject: render(templates.ownerAlert.subject, vars),
         text: render(templates.ownerAlert.body, vars),
@@ -101,7 +114,7 @@ export async function sendNewBookingAlert(booking: any): Promise<void> {
   };
   const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
-    await sendViaResend({
+    await sendViaSmtp({
       from, to: cfg.ownerEmail,
       subject: render(templates.newBookingRequest.subject, vars),
       text: render(templates.newBookingRequest.body, vars),
@@ -129,7 +142,7 @@ export async function sendReminderEmail(booking: any): Promise<boolean> {
   };
   const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
-    await sendViaResend({
+    await sendViaSmtp({
       from, to: booking.email,
       subject: render(templates.appointmentReminder.subject, vars),
       text: render(templates.appointmentReminder.body, vars),
@@ -159,7 +172,7 @@ export async function sendCancellationEmail(booking: any): Promise<void> {
   };
   const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
   try {
-    await sendViaResend({
+    await sendViaSmtp({
       from, to: booking.email,
       subject: render(templates.cancellation.subject, vars),
       text: render(templates.cancellation.body, vars),
@@ -175,12 +188,11 @@ export async function sendTestEmail(toOverride?: string) {
   // nothing because of it.
   if (!cfg || !cfg.enabled) throw new Error('"Send booking emails" is switched off in Admin > Emails — turn it on to send anything, including this test.');
   if (!cfg.fromEmail) throw new Error("Email not configured — set a From email in Admin > Emails");
-  if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set on the server");
   const from = `${cfg.fromName ?? "Test"} <${cfg.fromEmail}>`;
-  await sendViaResend({
+  await sendViaSmtp({
     from,
     to: toOverride ?? cfg.ownerEmail ?? cfg.fromEmail,
     subject: "Test email from The Singing Canary admin",
-    text: "If you can read this, your Resend setup is working.",
+    text: "If you can read this, your SMTP setup is working.",
   });
 }

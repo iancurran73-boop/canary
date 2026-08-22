@@ -1954,10 +1954,8 @@ type EmailDiagnostics = {
   enabled: boolean;
   fromEmail: string;
   ownerEmail: string;
-  apiKeySet: boolean;
-  apiKeyValid: boolean | null;
-  domains: { name: string; status: string }[];
-  fromDomainVerified: boolean | null;
+  smtpConfigured: boolean;
+  smtpConnectionOk: boolean | null;
   error: string | null;
 };
 
@@ -2046,13 +2044,13 @@ function EmailsTab() {
           <Mail className="size-5 text-primary mt-0.5" />
           <div>
             <h2 className="text-base font-semibold text-foreground">Booking emails</h2>
-            <p className="text-sm text-muted-foreground">Send confirmation emails to customers and alerts to yourself via Resend.</p>
+            <p className="text-sm text-muted-foreground">Send confirmation emails to customers and alerts to yourself via the mailbox's own SMTP login.</p>
           </div>
         </div>
 
         <div className="rounded-lg border border-border p-3 text-xs text-muted-foreground space-y-1">
-          <p>Sent via Resend's API, not a mailbox login — this needs a <code className="font-mono">RESEND_API_KEY</code> environment variable set in Railway, not entered here.</p>
-          <p>1. Sign up at resend.com and verify a sending domain (e.g. sophiespamperedpaws.co.uk). 2. Create an API key. 3. Add it to Railway as <code className="font-mono">RESEND_API_KEY</code>. 4. Set the From email below to an address on that verified domain.</p>
+          <p>Sent by logging into the real mailbox over SMTP — <code className="font-mono">SMTP_HOST</code>, <code className="font-mono">SMTP_PORT</code>, <code className="font-mono">SMTP_SECURE</code>, <code className="font-mono">SMTP_USER</code> and <code className="font-mono">SMTP_PASS</code> environment variables set in Railway, not entered here.</p>
+          <p>The From email below should match <code className="font-mono">SMTP_USER</code> — that's the mailbox actually sending the mail.</p>
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-border p-3">
@@ -2066,7 +2064,7 @@ function EmailsTab() {
         <div className="space-y-2">
           <Label htmlFor="from-email">From email</Label>
           <Input id="from-email" type="email" placeholder="bookings@yourbusiness.co.uk" value={form.fromEmail} onChange={(e) => setForm({ ...form, fromEmail: e.target.value })} data-testid="input-from-email" />
-          <p className="text-xs text-muted-foreground">Must be on a domain verified with Resend — doesn't need to be a real inbox, just a valid address on that domain.</p>
+          <p className="text-xs text-muted-foreground">Should match the mailbox set as SMTP_USER on the server — that's the real login sending the mail.</p>
         </div>
 
         <div className="space-y-2">
@@ -2114,21 +2112,13 @@ function EmailsTab() {
               {checkSetup.isPending ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : null} Check setup
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">Asks Resend directly whether the API key and domain are actually working — doesn't send anything.</p>
+          <p className="text-xs text-muted-foreground">Actually connects and logs into the mailbox over SMTP to check it works — doesn't send anything.</p>
           {diagnostics && (
             <div className="rounded-lg border border-border p-3 space-y-2 text-xs" data-testid="panel-email-diagnostics">
               <DiagnosticRow ok={diagnostics.enabled} label={'"Send booking emails" is switched on'} />
-              <DiagnosticRow ok={diagnostics.apiKeySet} label="RESEND_API_KEY set on the server" />
-              {diagnostics.apiKeySet && (
-                <DiagnosticRow ok={diagnostics.apiKeyValid} label="API key accepted by Resend" />
-              )}
-              {diagnostics.apiKeyValid && (
-                <DiagnosticRow ok={diagnostics.fromDomainVerified} label={`Domain for "${diagnostics.fromEmail || "(no From email set)"}" is verified`} />
-              )}
-              {diagnostics.domains.length > 0 && (
-                <div className="pt-1 text-muted-foreground">
-                  Domains on this Resend account: {diagnostics.domains.map((d) => `${d.name} (${d.status})`).join(", ")}
-                </div>
+              <DiagnosticRow ok={diagnostics.smtpConfigured} label="SMTP_HOST/SMTP_USER/SMTP_PASS set on the server" />
+              {diagnostics.smtpConfigured && (
+                <DiagnosticRow ok={diagnostics.smtpConnectionOk} label="Connected and logged in successfully" />
               )}
               {diagnostics.error && (
                 <div className="pt-1 text-destructive" data-testid="text-diagnostics-error">{diagnostics.error}</div>
