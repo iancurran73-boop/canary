@@ -63,6 +63,7 @@ sqlite.exec(`
     event_type TEXT NOT NULL DEFAULT '',
     party_size INTEGER NOT NULL DEFAULT 1,
     notes TEXT DEFAULT '',
+    shout_outs TEXT NOT NULL DEFAULT '',
     date TEXT NOT NULL,
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
@@ -133,6 +134,15 @@ sqlite.exec(`
     created_at INTEGER NOT NULL
   );
 `);
+
+// ALTER TABLE migrations for bookings — SQLite has no IF NOT EXISTS for
+// ADD COLUMN, so we wrap each in try/catch and no-op if it already exists.
+const bookingAlters = [
+  "ALTER TABLE bookings ADD COLUMN shout_outs TEXT NOT NULL DEFAULT ''",
+];
+for (const sql of bookingAlters) {
+  try { sqlite.exec(sql); } catch { /* column already exists */ }
+}
 
 // --- seed defaults if empty ---
 const seedIfEmpty = () => {
@@ -517,7 +527,8 @@ Party size: {partySize}
 Occasion: {eventType}
 Deposit paid: £{deposit}
 
-Notes: {notes}`,
+Notes: {notes}
+DJ shout-outs: {shoutOuts}`,
   },
   newBookingRequest: {
     subject: "New booking request: {customer} on {date}",
@@ -533,6 +544,7 @@ Occasion: {eventType}
 {depositStatus}
 
 Notes: {notes}
+DJ shout-outs: {shoutOuts}
 
 Review and confirm it in the admin panel.`,
   },

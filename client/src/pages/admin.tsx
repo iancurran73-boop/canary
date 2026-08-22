@@ -377,6 +377,14 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
               <div className="rounded-md bg-muted p-2 text-xs text-foreground/80 whitespace-pre-wrap">{booking.notes}</div>
             </section>
           )}
+
+          {/* DJ shout-outs */}
+          {booking.shoutOuts && (
+            <section className="space-y-1">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">DJ shout-outs</div>
+              <div className="rounded-md bg-muted p-2 text-xs text-foreground/80 whitespace-pre-wrap">{booking.shoutOuts}</div>
+            </section>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2 flex-wrap">
@@ -1940,9 +1948,9 @@ type EmailTemplatesForm = {
 };
 
 const PLACEHOLDER_HINT =
-  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {deposit}, {phone}, {email}, {notes}, {business}, {ownerName}";
+  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {deposit}, {phone}, {email}, {notes}, {shoutOuts}, {business}, {ownerName}";
 const NEW_BOOKING_PLACEHOLDER_HINT =
-  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {depositStatus}, {phone}, {email}, {notes}, {business}, {ownerName}";
+  "Available placeholders: {customer}, {date}, {time}, {eventType}, {partySize}, {depositStatus}, {phone}, {email}, {notes}, {shoutOuts}, {business}, {ownerName}";
 
 function EmailsTab() {
   const { toast } = useToast();

@@ -48,6 +48,7 @@ export async function sendBookingEmails(booking: any) {
     partySize: booking.partySize ?? "",
     deposit: booking.depositPaid ?? "0.00",
     notes: booking.notes ?? "",
+    shoutOuts: booking.shoutOuts ?? "",
   };
   const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
 
@@ -95,6 +96,7 @@ export async function sendNewBookingAlert(booking: any): Promise<void> {
     eventType: booking.eventType ?? "",
     partySize: booking.partySize ?? "",
     notes: booking.notes ?? "",
+    shoutOuts: booking.shoutOuts ?? "",
     depositStatus: `Awaiting deposit of £${booking.depositPaid}`,
   };
   const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;

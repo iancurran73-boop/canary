@@ -29,6 +29,7 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
     eventType: "",
     partySize: "",
     notes: "",
+    shoutOuts: "",
   });
 
   const { data: studio } = useQuery<{
@@ -60,6 +61,7 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
         eventType: form.eventType,
         partySize: Number(form.partySize),
         notes: form.notes,
+        shoutOuts: form.shoutOuts,
         date,
         startTime,
       });
@@ -67,6 +69,7 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/availability"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/availability-range"] });
       setLocation(data.depositAmount > 0 ? `/pay/${data.bookingId}` : `/confirmed/${data.bookingId}`);
     },
     onError: (err: Error) => {
@@ -81,6 +84,19 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
     () => Array.from({ length: maxAdvanceDays }).map((_, i) => addDays(todayIso(), i)),
     [maxAdvanceDays]
   );
+
+  // Bulk Y/N so the date strip can grey out fully-booked days upfront,
+  // instead of making people tap each date to find out.
+  const rangeTo = dateStrip[dateStrip.length - 1];
+  const { data: rangeAvail } = useQuery<{ unavailable: string[] }>({
+    queryKey: ["/api/public/availability-range", { from: todayIso(), to: rangeTo }],
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/public/availability-range?from=${todayIso()}&to=${rangeTo}`);
+      return r.json();
+    },
+    enabled: step === "datetime" && !!rangeTo,
+  });
+  const unavailableDates = useMemo(() => new Set(rangeAvail?.unavailable ?? []), [rangeAvail]);
 
   const canContinueDateTime = !!date && !!startTime;
   const partySizeNum = Number(form.partySize);
@@ -131,15 +147,22 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
                 {dateStrip.map((d) => {
                   const dt = new Date(d + "T00:00:00");
                   const isSelected = date === d;
+                  const isUnavailable = unavailableDates.has(d);
                   return (
                     <button
                       key={d}
                       data-testid={`button-date-${d}`}
-                      onClick={() => { setDate(d); setStartTime(""); }}
-                      className={`shrink-0 w-16 sm:w-[72px] py-2.5 rounded-xl border-2 transition-all hover-elevate ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-card-border bg-card text-foreground"}`}
+                      onClick={() => { if (isUnavailable) return; setDate(d); setStartTime(""); }}
+                      disabled={isUnavailable}
+                      aria-label={isUnavailable ? `${dt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} — fully booked` : undefined}
+                      className={`shrink-0 w-16 sm:w-[72px] py-2.5 rounded-xl border-2 transition-all ${
+                        isUnavailable
+                          ? "border-card-border bg-card text-muted-foreground/40 opacity-50 cursor-not-allowed"
+                          : `hover-elevate ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-card-border bg-card text-foreground"}`
+                      }`}
                     >
                       <div className="text-[10px] uppercase tracking-wider opacity-80">{dt.toLocaleDateString("en-GB", { weekday: "short" })}</div>
-                      <div className="font-display text-xl font-bold mt-0.5">{dt.getDate()}</div>
+                      <div className={`font-display text-xl font-bold mt-0.5 ${isUnavailable ? "line-through" : ""}`}>{dt.getDate()}</div>
                       <div className="text-[10px] opacity-80">{dt.toLocaleDateString("en-GB", { month: "short" })}</div>
                     </button>
                   );
@@ -224,7 +247,12 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
 
               <div>
                 <Label htmlFor="notes">Anything we should know? <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                <Textarea id="notes" data-testid="input-notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Requests, allergies, timings…" />
+                <Textarea id="notes" data-testid="input-notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Bringing your own buffet, a kissogram, allergies, timings…" />
+              </div>
+
+              <div>
+                <Label htmlFor="shoutOuts">Shout-outs for the DJ <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea id="shoutOuts" data-testid="input-shout-outs" rows={2} value={form.shoutOuts} onChange={(e) => setForm({ ...form, shoutOuts: e.target.value })} placeholder="Songs to play, birthday shout-outs, first dance…" />
               </div>
             </div>
 
@@ -257,6 +285,7 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
                 <Row label="Contact" value={`${form.email} · ${form.phone}`} />
                 <Row label="Occasion" value={form.eventType} />
                 <Row label="Party size" value={form.partySize} />
+                {form.shoutOuts && <Row label="DJ shout-outs" value={form.shoutOuts} muted />}
                 <div className="pt-3 mt-3 border-t border-card-border space-y-2.5">
                   <Row label="Deposit to secure" value={gbp(depositAmount)} highlight />
                 </div>

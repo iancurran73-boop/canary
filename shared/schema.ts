@@ -41,6 +41,7 @@ export const bookings = sqliteTable("bookings", {
   eventType: text("event_type").notNull().default(""), // e.g. "Birthday", "Hen do", "Corporate", "Just because"
   partySize: integer("party_size").notNull().default(1),
   notes: text("notes").default(""),
+  shoutOuts: text("shout_outs").notNull().default(""), // song requests / shout-outs for the DJ
   date: text("date").notNull(), // "YYYY-MM-DD"
   startTime: text("start_time").notNull(), // "HH:MM"
   endTime: text("end_time").notNull(),

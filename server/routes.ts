@@ -47,6 +47,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     partySize: booking.partySize,
     depositPaid: typeof booking.depositAmount === "number" ? booking.depositAmount.toFixed(2) : booking.depositAmount,
     notes: booking.notes,
+    shoutOuts: booking.shoutOuts,
   });
 
   // ========= PUBLIC (widget) =========
@@ -125,6 +126,56 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json({ slots, durationMinutes: dur });
   });
 
+  // Cheap Y/N availability for a date range, so the date picker can grey out
+  // fully-booked days upfront instead of making people tap through each one.
+  // Mirrors the single-date logic above but skips full slot enumeration.
+  app.get("/api/public/availability-range", async (req, res) => {
+    const from = String(req.query.from || "");
+    const to = String(req.query.to || "");
+    if (!from || !to) return res.status(400).json({ error: "from and to required" });
+
+    const settings = await storage.getSettings();
+    const wh = await storage.listWorkingHours();
+    const whByDay = new Map(wh.map((w) => [w.dayOfWeek, w]));
+    const dayBookings = (await storage.listBookings(from, to)).filter(
+      (b) => b.status === "pending" || b.status === "confirmed"
+    );
+    const bookedDates = new Set(dayBookings.map((b) => b.date));
+    const blocks = await storage.listBlockedDates(from, to);
+    const blockedWholeDay = new Set(blocks.filter((bd) => !bd.startTime || !bd.endTime).map((bd) => bd.date));
+
+    const now = new Date();
+    const minNoticeMs = settings.minNoticeHours * 3600_000;
+    const dur = settings.sessionDurationMinutes;
+
+    const unavailable: string[] = [];
+    if (settings.acceptingBookings) {
+      const cursor = new Date(from + "T00:00:00");
+      const end = new Date(to + "T00:00:00");
+      while (cursor.getTime() <= end.getTime()) {
+        const dateStr = cursor.toISOString().slice(0, 10);
+        const w = whByDay.get(cursor.getDay());
+        let ok = !!w && w.enabled && !bookedDates.has(dateStr) && !blockedWholeDay.has(dateStr);
+        if (ok && w) {
+          const dayStart = toMinutes(w.startTime);
+          const dayEnd = toMinutes(w.endTime);
+          const latestStart = dayEnd - dur;
+          if (latestStart < dayStart) {
+            ok = false;
+          } else {
+            const latestSlot = new Date(cursor);
+            latestSlot.setMinutes(latestStart);
+            if (latestSlot.getTime() - now.getTime() < minNoticeMs) ok = false;
+          }
+        }
+        if (!ok) unavailable.push(dateStr);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+
+    res.json({ unavailable });
+  });
+
   // Create a booking (status=pending) — a flat deposit secures it, refunded
   // as a bar tab on the night.
   app.post("/api/public/bookings", async (req, res) => {
@@ -135,6 +186,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       eventType: z.string().min(1, "Let us know what the occasion is"),
       partySize: z.number().int().min(1).max(200),
       notes: z.string().optional().default(""),
+      shoutOuts: z.string().optional().default(""),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       startTime: z.string().regex(HHMM),
     });
@@ -163,6 +215,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       eventType: data.eventType,
       partySize: data.partySize,
       notes: data.notes,
+      shoutOuts: data.shoutOuts,
       date: data.date,
       startTime: data.startTime,
       endTime,
