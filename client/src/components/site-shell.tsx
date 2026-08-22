@@ -14,9 +14,20 @@ import { Menu, X, MapPin, Phone, Mail, Instagram, ArrowRight } from "lucide-reac
 import config from "@/lib/tenant";
 import { useBrand } from "@/lib/brand";
 import { usePages } from "@/lib/pages";
+import { useContent } from "@/lib/content";
 import type { WorkingHours } from "@shared/schema";
 
 const { business, brand, hours } = config;
+
+/** Address — admin-editable via Content > Contact, falling back to tenant config. */
+function useAddress() {
+  const { c } = useContent();
+  return {
+    line1: c("contact.addressLine1", business.address.line1),
+    city: c("contact.city", business.address.city),
+    postcode: c("contact.postcode", business.address.postcode),
+  };
+}
 
 type HoursDict = Record<string, { enabled: boolean; start?: string; end?: string; note?: string }>;
 
@@ -78,6 +89,7 @@ function buildHoursSummary(hoursDict: HoursDict): string {
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const b = useBrand();
+  const address = useAddress();
   const nav = usePages();
   const hoursSummary = buildHoursSummary(useHours());
   const [location] = useLocation();
@@ -111,7 +123,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <Mail className="size-3" /> {b.email}
             </a>
             <span className="inline-flex items-center gap-1.5 opacity-85">
-              <MapPin className="size-3" /> {business.address.line1}, {business.address.city} {business.address.postcode}
+              <MapPin className="size-3" /> {address.line1}, {address.city} {address.postcode}
             </span>
           </div>
           <div className="flex items-center gap-3 opacity-95">
@@ -219,6 +231,7 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 
 function SiteFooter() {
   const b = useBrand();
+  const address = useAddress();
   const nav = usePages();
   const footerHours = useHours();
   return (
@@ -234,7 +247,7 @@ function SiteFooter() {
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
               <MapPin className="size-4 mt-0.5 shrink-0 text-accent" />
-              {business.address.line1},<br /> {business.address.city} {business.address.postcode}
+              {address.line1},<br /> {address.city} {address.postcode}
             </li>
             <li className="flex items-center gap-2">
               <Phone className="size-4 text-accent" />
@@ -289,7 +302,7 @@ function SiteFooter() {
       </div>
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row justify-between gap-2 text-xs text-white/50">
-          <p>© {new Date().getFullYear()} {b.brandName} · {business.address.city}</p>
+          <p>© {new Date().getFullYear()} {b.brandName} · {address.city}</p>
           <p>Powered by GeneralBooking</p>
         </div>
       </div>

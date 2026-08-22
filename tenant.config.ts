@@ -51,9 +51,9 @@ const config: TenantConfig = {
     phoneDisplay: "TBC",
     email: "hello@thesingingcanary.co.uk", // TBC
     address: {
-      line1: "TBC",
+      line1: "15 Marlborough Crescent",
       city: "Newcastle upon Tyne",
-      postcode: "TBC",
+      postcode: "NE1 4EE",
       country: "United Kingdom",
     },
     mapsUrl: "https://maps.google.com/?q=The+Singing+Canary+Newcastle",
