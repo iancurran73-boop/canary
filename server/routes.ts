@@ -325,6 +325,70 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }));
     res.json(enriched);
   });
+
+  // Manually add a booking (phone/walk-in enquiries etc). Unlike the public
+  // endpoint, this isn't subject to min-notice/max-advance windows — the
+  // admin can book any date. Still must match a defined slot for that
+  // day-of-week (so endTime/duration stay consistent with everything else),
+  // and still respects the one-booking-per-day rule.
+  app.post("/api/admin/bookings", async (req, res) => {
+    const bodySchema = z.object({
+      customerName: z.string().min(1),
+      customerEmail: z.string().optional().default(""),
+      customerPhone: z.string().optional().default(""),
+      eventType: z.string().optional().default(""),
+      partySize: z.number().int().min(1).max(200),
+      notes: z.string().optional().default(""),
+      shoutOuts: z.string().optional().default(""),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      startTime: z.string().regex(HHMM),
+      status: z.enum(["pending", "confirmed"]).optional().default("confirmed"),
+      depositAmount: z.number().min(0).optional(),
+    });
+    const parse = bodySchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
+    const data = parse.data;
+
+    const dow = new Date(data.date + "T00:00:00").getDay();
+    const matchingSlot = (await storage.listWorkingHours()).find(
+      (w) => w.dayOfWeek === dow && w.enabled && w.startTime === data.startTime
+    );
+    if (!matchingSlot) {
+      return res.status(400).json({ error: "That start time isn't a defined slot for this day — add it in Admin > Hours first." });
+    }
+
+    const sameDay = (await storage.listBookings(data.date, data.date)).filter(
+      (b) => b.status === "pending" || b.status === "confirmed"
+    );
+    if (sameDay.length > 0) return res.status(409).json({ error: "That day already has a booking." });
+
+    const settings = await storage.getSettings();
+    const booking = await storage.createBooking({
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
+      eventType: data.eventType,
+      partySize: data.partySize,
+      notes: data.notes,
+      shoutOuts: data.shoutOuts,
+      date: data.date,
+      startTime: data.startTime,
+      endTime: matchingSlot.endTime,
+      depositAmount: data.depositAmount ?? settings.depositAmount,
+      status: data.status,
+      paymentRef: "",
+      createdAt: Date.now(),
+      sumupCheckoutId: "",
+      reminderSentAt: null,
+    });
+
+    if (data.status === "confirmed" && booking.customerEmail) {
+      emailForBooking(booking).then((b) => sendBookingEmails(b)).catch((e) => console.error("[email]", e));
+    }
+
+    res.json(booking);
+  });
+
   app.post("/api/admin/bookings/:id/cancel", async (req, res) => {
     const cancelled = await storage.cancelBooking(Number(req.params.id));
     if (!cancelled) return res.status(404).json({ error: "Not found" });

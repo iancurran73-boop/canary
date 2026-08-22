@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { gbp, formatDuration, formatDate, formatDateShort, todayIso, addDays } from "@/lib/format";
 import { BrandMark } from "@/components/brand-mark";
@@ -433,6 +434,7 @@ function ScheduleTab() {
     queryKey: ["/api/admin/bookings", { from: today, to: future }],
     queryFn: async () => (await apiRequest("GET", `/api/admin/bookings?from=${today}&to=${future}`)).json(),
   });
+  const [addOpen, setAddOpen] = useState(false);
 
   // Group by date
   const grouped: Record<string, AdminBooking[]> = {};
@@ -444,10 +446,16 @@ function ScheduleTab() {
 
   return (
     <div className="space-y-5 mt-5">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Schedule</h1>
-        <p className="text-sm text-muted-foreground">All upcoming bookings.</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Schedule</h1>
+          <p className="text-sm text-muted-foreground">All upcoming bookings.</p>
+        </div>
+        <Button onClick={() => setAddOpen(true)} data-testid="button-add-booking">
+          <Plus className="size-4 mr-1" /> Add booking
+        </Button>
       </div>
+      <AddBookingDialog open={addOpen} onClose={() => setAddOpen(false)} />
       {dates.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground border-dashed">No upcoming bookings.</Card>
       ) : dates.map((d) => (
@@ -457,6 +465,152 @@ function ScheduleTab() {
         </div>
       ))}
     </div>
+  );
+}
+
+function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { toast } = useToast();
+  const { data: workingHours = [] } = useQuery<WorkingHours[]>({ queryKey: ["/api/admin/working-hours"] });
+  const { data: settings } = useQuery<Settings>({ queryKey: ["/api/admin/settings"] });
+
+  const emptyForm = {
+    date: todayIso(),
+    startTime: "",
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    eventType: "",
+    partySize: "",
+    notes: "",
+    shoutOuts: "",
+    status: "confirmed" as "confirmed" | "pending",
+    depositAmount: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const daySlots = useMemo(() => {
+    const dow = new Date(form.date + "T00:00:00").getDay();
+    return workingHours.filter((w) => w.dayOfWeek === dow && w.enabled).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [workingHours, form.date]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const body = {
+        customerName: form.customerName,
+        customerEmail: form.customerEmail,
+        customerPhone: form.customerPhone,
+        eventType: form.eventType,
+        partySize: Number(form.partySize),
+        notes: form.notes,
+        shoutOuts: form.shoutOuts,
+        date: form.date,
+        startTime: form.startTime,
+        status: form.status,
+        ...(form.depositAmount ? { depositAmount: Number(form.depositAmount) } : {}),
+      };
+      return (await apiRequest("POST", "/api/admin/bookings", body)).json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      toast({ title: "Booking added" });
+      setForm(emptyForm);
+      onClose();
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : "Could not add booking";
+      toast({ title: "Couldn't add booking", description: message, variant: "destructive" });
+    },
+  });
+
+  function handleClose() {
+    setForm(emptyForm);
+    onClose();
+  }
+
+  const canSave = !!form.customerName.trim() && !!form.startTime && !!form.partySize && Number(form.partySize) >= 1;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Add a booking</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">For phone or walk-in enquiries. Follows the same one-booking-per-day rule as online bookings.</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, startTime: "" })} data-testid="input-addbooking-date" />
+            </div>
+            <div>
+              <Label>Start time</Label>
+              {daySlots.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2.5">No slots defined for this day — add one in Admin &gt; Hours.</p>
+              ) : (
+                <Select value={form.startTime} onValueChange={(v) => setForm({ ...form, startTime: v })}>
+                  <SelectTrigger data-testid="select-addbooking-time"><SelectValue placeholder="Choose a slot" /></SelectTrigger>
+                  <SelectContent>
+                    {daySlots.map((w) => (
+                      <SelectItem key={w.id} value={w.startTime}>{w.startTime} – {w.endTime}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label>Customer name</Label>
+            <Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="Jane Doe" data-testid="input-addbooking-name" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <Input type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} data-testid="input-addbooking-phone" />
+            </div>
+            <div>
+              <Label>Email <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <Input type="email" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })} data-testid="input-addbooking-email" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Occasion <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <Input value={form.eventType} onChange={(e) => setForm({ ...form, eventType: e.target.value })} placeholder="Birthday, hen do…" data-testid="input-addbooking-occasion" />
+            </div>
+            <div>
+              <Label>Party size</Label>
+              <Input type="number" min={1} value={form.partySize} onChange={(e) => setForm({ ...form, partySize: e.target.value })} placeholder="e.g. 12" data-testid="input-addbooking-partysize" />
+            </div>
+          </div>
+
+          <div>
+            <Label>Notes <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="input-addbooking-notes" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as "confirmed" | "pending" })}>
+                <SelectTrigger data-testid="select-addbooking-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Deposit <span className="text-muted-foreground font-normal text-xs">(optional override)</span></Label>
+              <Input type="number" min={0} value={form.depositAmount} onChange={(e) => setForm({ ...form, depositAmount: e.target.value })} placeholder={settings ? gbp(settings.depositAmount) : ""} data-testid="input-addbooking-deposit" />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => create.mutate()} disabled={!canSave || create.isPending} data-testid="button-save-addbooking">
+            {create.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Add booking
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
