@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { gbp, formatDuration, formatDate, formatDateShort, todayIso, addDays } from "@/lib/format";
 import { Sparkles, Clock, ArrowRight, ArrowLeft, Calendar as CalIcon, CreditCard, Loader2 } from "lucide-react";
@@ -175,22 +176,18 @@ export function BookingWidget({ embedded = false }: { embedded?: boolean }) {
                 <Clock className="size-3.5" /> Available start times
               </Label>
               {loadingSlots ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-11 rounded-lg bg-muted animate-pulse" />)}
-                </div>
+                <div className="h-11 rounded-lg bg-muted animate-pulse" />
               ) : avail && avail.slots.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {avail.slots.map((t) => (
-                    <button
-                      key={t}
-                      data-testid={`button-time-${t}`}
-                      onClick={() => setStartTime(t)}
-                      className={`h-11 rounded-lg border-2 font-medium transition-all hover-elevate text-sm ${startTime === t ? "border-primary bg-primary text-primary-foreground" : "border-card-border bg-card text-foreground"}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                <Select value={startTime} onValueChange={setStartTime}>
+                  <SelectTrigger className="h-11" data-testid="select-start-time">
+                    <SelectValue placeholder="Choose a start time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {avail.slots.map((t) => (
+                      <SelectItem key={t} value={t} data-testid={`option-time-${t}`}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <Card className="p-4 bg-muted/40 border-dashed text-sm text-muted-foreground text-center">
                   No openings on {formatDateShort(date)}. Try another date.
