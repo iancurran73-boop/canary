@@ -909,6 +909,7 @@ function PagesTab() {
   const { data: allPages = [], isLoading } = useQuery<SitePage[]>({ queryKey: ["/api/admin/pages"] });
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<SitePage | null>(null);
+  const [renaming, setRenaming] = useState<SitePage | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const sorted = [...allPages].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -1010,7 +1011,7 @@ function PagesTab() {
                 >
                   {page.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                 </button>
-                {page.kind === "custom" && (
+                {page.kind === "custom" ? (
                   <>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(page)} data-testid={`button-edit-page-${page.slug}`}>
                       <Pencil className="size-4" />
@@ -1019,6 +1020,10 @@ function PagesTab() {
                       <Trash2 className="size-4" />
                     </Button>
                   </>
+                ) : (
+                  <Button size="icon" variant="ghost" onClick={() => setRenaming(page)} data-testid={`button-rename-page-${page.slug}`}>
+                    <Pencil className="size-4" />
+                  </Button>
                 )}
               </div>
             </div>
@@ -1028,6 +1033,7 @@ function PagesTab() {
 
       <AddPageDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={(p) => { invalidate(); setEditing(p); }} />
       {editing && <PageContentDialog page={editing} onClose={() => setEditing(null)} />}
+      {renaming && <RenamePageDialog page={renaming} onClose={() => setRenaming(null)} />}
 
       <Dialog open={confirmDeleteId !== null} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
         <DialogContent className="max-w-sm">
@@ -1151,15 +1157,77 @@ function AddPageDialog({ open, onClose, onCreated }: { open: boolean; onClose: (
   );
 }
 
+function RenamePageDialog({ page, onClose }: { page: SitePage; onClose: () => void }) {
+  const { toast } = useToast();
+  const [navLabel, setNavLabel] = useState(page.navLabel);
+
+  const save = useMutation({
+    mutationFn: async () => (await apiRequest("PATCH", `/api/admin/pages/${page.id}`, { navLabel })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/pages"] });
+      toast({ title: "Page renamed" });
+      onClose();
+    },
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Rename "{page.navLabel}"</DialogTitle></DialogHeader>
+        <div>
+          <Label>Menu name</Label>
+          <Input value={navLabel} onChange={(e) => setNavLabel(e.target.value)} data-testid="input-rename-page" />
+        </div>
+        <DialogFooter>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !navLabel.trim()} data-testid="button-save-rename-page">
+            {save.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => void }) {
+  const { toast } = useToast();
   const { c } = useContent();
   const slug = page.slug;
+  const [layout, setLayout] = useState(page.layout ?? PAGE_LAYOUTS[0].id);
+
+  const changeLayout = useMutation({
+    mutationFn: async (newLayout: string) => (await apiRequest("PATCH", `/api/admin/pages/${page.id}`, { layout: newLayout })).json(),
+    onSuccess: (_data, newLayout) => {
+      setLayout(newLayout);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/pages"] });
+      toast({ title: "Layout updated" });
+    },
+  });
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{page.navLabel}</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          <div>
+            <Label className="mb-2 block">Layout <span className="text-xs font-normal text-muted-foreground">— switching may leave some old fields unused below</span></Label>
+            <div className="grid gap-2">
+              {PAGE_LAYOUTS.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => l.id !== layout && changeLayout.mutate(l.id)}
+                  disabled={changeLayout.isPending}
+                  className={`text-left rounded-xl border p-3 transition-colors ${layout === l.id ? "border-primary bg-primary/5" : "border-card-border hover-elevate"}`}
+                  data-testid={`button-change-layout-${l.id}`}
+                >
+                  <p className="font-semibold text-sm">{l.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{l.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <Label className="mb-1 block">Title</Label>
             <InlineText contentKey={`page.${slug}.title`} value={c(`page.${slug}.title`, page.navLabel)} label="Title" />
@@ -1169,7 +1237,7 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
             <InlineText contentKey={`page.${slug}.intro`} value={c(`page.${slug}.intro`, "")} variant="textarea" rows={2} label="Intro" />
           </div>
 
-          {page.layout === "steps" && (
+          {layout === "steps" && (
             <>
               <div>
                 <Label className="mb-1 block">Steps <span className="text-xs font-normal text-muted-foreground">— one per line, shown in order</span></Label>
@@ -1186,7 +1254,7 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
             </>
           )}
 
-          {page.layout === "story" && (
+          {layout === "story" && (
             <>
               <div>
                 <Label className="mb-1 block">Body <span className="text-xs font-normal text-muted-foreground">— separate paragraphs with a blank line</span></Label>
@@ -1199,20 +1267,20 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
             </>
           )}
 
-          {(page.layout === "simple" || page.layout === "promo") && (
+          {(layout === "simple" || layout === "promo") && (
             <>
               <div>
                 <Label className="mb-1 block">Body</Label>
                 <InlineText contentKey={`page.${slug}.body`} value={c(`page.${slug}.body`, "")} variant="textarea" rows={6} label="Body" />
               </div>
               <div>
-                <Label className="mb-1 block">Image {page.layout === "promo" && <span className="text-xs font-normal text-muted-foreground">— shown as a full-width background</span>}</Label>
+                <Label className="mb-1 block">Image {layout === "promo" && <span className="text-xs font-normal text-muted-foreground">— shown as a full-width background</span>}</Label>
                 <ImageDropzone contentKey={`page.${slug}.image`} currentUrl={c(`page.${slug}.image`, "")} alt="Page image" />
               </div>
             </>
           )}
 
-          {page.layout === "gallery" && (
+          {layout === "gallery" && (
             <div className="grid sm:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <div key={n}>
@@ -1223,7 +1291,7 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
             </div>
           )}
 
-          {page.layout === "faq" && (
+          {layout === "faq" && (
             <div>
               <Label className="mb-1 block">Questions &amp; answers <span className="text-xs font-normal text-muted-foreground">— question on the first line, answer below, blank line between each</span></Label>
               <InlineText
@@ -1237,7 +1305,7 @@ function PageContentDialog({ page, onClose }: { page: SitePage; onClose: () => v
             </div>
           )}
 
-          {page.layout === "testimonials" && (
+          {layout === "testimonials" && (
             <p className="text-xs text-muted-foreground">This page shows your full review list automatically — manage reviews in the Reviews tab.</p>
           )}
         </div>

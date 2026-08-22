@@ -463,9 +463,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       navLabel: z.string().trim().min(1).max(60).optional(),
       visible: z.boolean().optional(),
       sortOrder: z.number().int().optional(),
+      layout: z.enum(PAGE_LAYOUT_IDS as [string, ...string[]]).optional(),
     });
     const parse = bodySchema.safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
+
+    if (parse.data.layout !== undefined && page.kind !== "custom") {
+      return res.status(400).json({ error: "Only custom pages can change layout." });
+    }
 
     const updated = await storage.updatePage(id, parse.data);
     res.json(updated);
