@@ -468,8 +468,8 @@ export const storage = new DatabaseStorage();
 
 export type EmailConfig = {
   enabled: boolean;
-  // Address on a domain verified with Resend, e.g. bookings@yourvenue.co.uk.
-  // The Resend API key itself lives in the RESEND_API_KEY env var, not here.
+  // Should match SMTP_USER (the mailbox actually logging in and sending).
+  // The SMTP credentials themselves live in env vars, not here.
   fromEmail: string;
   fromName: string;
   bccOwner: boolean;
@@ -490,13 +490,16 @@ export type EmailTemplates = {
 const EMAIL_CONFIG_KEY = "email_config";
 const EMAIL_TEMPLATES_KEY = "email_templates";
 
+// If the database ever resets (e.g. a fresh volume mount), these are what
+// customers/Josh actually get — real values, not blanks, so booking emails
+// don't silently stop working until someone notices and re-saves the form.
 const defaultEmailConfig: EmailConfig = {
-  enabled: false,
-  fromEmail: "",
+  enabled: true,
+  fromEmail: "hello@thesingingcanary.co.uk",
   fromName: "The Singing Canary",
   bccOwner: false,
-  ownerEmail: "",
-  remindersEnabled: false,
+  ownerEmail: "hello@thesingingcanary.co.uk",
+  remindersEnabled: true,
   reminderHoursBefore: 48,
 };
 
