@@ -49,7 +49,7 @@ const config: TenantConfig = {
     ownerName: "Josh",
     phone: "+440000000000",               // TBC
     phoneDisplay: "TBC",
-    email: "hello@thesingingcanary.co.uk", // TBC
+    email: "hello@thesingingcanary.co.uk",
     address: {
       line1: "15 Marlborough Crescent",
       city: "Newcastle upon Tyne",
