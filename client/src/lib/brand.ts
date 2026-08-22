@@ -68,7 +68,7 @@ const defaults: BrandConfig = {
   },
   italicAccent: config.brand.italicAccent ?? true,
   policy: {
-    cancellationNoticeHours: 48,
+    cancellationNoticeHours: 24,
     refundPercentInsideNotice: 0,
     body:
       "Cancellations made more than [N] hours before your booking receive a full deposit refund. Cancellations within [N] hours are non-refundable.",

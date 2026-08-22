@@ -831,7 +831,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   const readPolicy = async () => ({
-    cancellationNoticeHours: await intVal("policy.cancellationNoticeHours", 48),
+    cancellationNoticeHours: await intVal("policy.cancellationNoticeHours", 24),
     refundPercentInsideNotice: await intVal("policy.refundPercentInsideNotice", 0),
     body: await val("policy.body", defaultPolicyBody),
   });

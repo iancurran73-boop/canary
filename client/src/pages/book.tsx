@@ -48,7 +48,7 @@ export default function Book() {
               { icon: CalendarCheck, label: "Real-time slots" },
               { icon: Shield, label: "Personal reply" },
               { icon: CreditCard, label: "£150 deposit" },
-              { icon: Clock, label: "Cancel free 48h" },
+              { icon: Clock, label: `Cancel free ${b.policy.cancellationNoticeHours}h` },
             ].map((b) => (
               <div key={b.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 flex items-center gap-2 ring-1 ring-white/15">
                 <b.icon className="size-4 text-accent shrink-0" />

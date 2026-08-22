@@ -240,6 +240,7 @@ function MvpContactSection({
 }
 
 function SumupPaySection({ booking }: { booking: BookingDetails }) {
+  const b = useBrand();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -301,7 +302,7 @@ function SumupPaySection({ booking }: { booking: BookingDetails }) {
           </div>
 
           <p className="text-xs text-muted-foreground text-center mt-6 leading-relaxed">
-            Payments are processed securely by SumUp. Cancellations 48h+ in advance are refunded in full.
+            Payments are processed securely by SumUp. Cancellations {b.policy.cancellationNoticeHours}h+ in advance are refunded in full.
           </p>
 
           <div className="mt-6 text-center">
