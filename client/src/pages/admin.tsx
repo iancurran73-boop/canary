@@ -20,7 +20,7 @@ import {
   Calendar, PartyPopper, Clock, Settings as SettingsIcon, Plus, Trash2, Pencil, Bell, ChevronLeft,
   CalendarOff, Ban, CheckCircle2, X, Loader2, BellRing, AlertCircle, FileText,
   ChevronUp, ChevronDown, GripVertical, Image as ImageIcon, Star, MessageSquare, CreditCard,
-  Building2, Palette, ScrollText, MapPin, Mail, Layers, Eye, EyeOff,
+  Building2, Palette, ScrollText, MapPin, Mail, Layers, Eye, EyeOff, Copy, Link2,
 } from "lucide-react";
 import type { Booking, WorkingHours, BlockedDate, Settings, Review, Event, ReturningCustomerInfo } from "@shared/schema";
 import { AdminGate, AdminLogout } from "@/components/admin-gate";
@@ -310,6 +310,31 @@ function BookingRow({ booking }: { booking: AdminBooking }) {
 function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClose: () => void; booking: AdminBooking }) {
   const { toast } = useToast();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+
+  const generateLink = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/public/bookings/${booking.id}/sumup-checkout`);
+      return res.json() as Promise<{ hostedCheckoutUrl?: string; error?: string }>;
+    },
+    onSuccess: (data) => {
+      if (data.hostedCheckoutUrl) setPaymentLink(data.hostedCheckoutUrl);
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : "Could not generate a payment link";
+      toast({ title: "Couldn't generate link", description: message, variant: "destructive" });
+    },
+  });
+
+  async function copyLink() {
+    if (!paymentLink) return;
+    try {
+      await navigator.clipboard.writeText(paymentLink);
+      toast({ title: "Copied", description: "Payment link copied — send it to the customer." });
+    } catch {
+      toast({ title: "Couldn't copy", description: "Select and copy the link manually.", variant: "destructive" });
+    }
+  }
 
   const cancel = useMutation({
     mutationFn: async () => (await apiRequest("POST", `/api/admin/bookings/${booking.id}/cancel`)).json(),
@@ -371,6 +396,25 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
             <div className="flex justify-between text-xs"><span className="text-muted-foreground">Deposit paid</span><span className="font-medium text-foreground">{gbp(booking.depositAmount)}</span></div>
             {booking.paymentRef && (
               <div className="flex justify-between text-xs pt-1 border-t border-card-border"><span className="text-muted-foreground">Payment ref</span><span className="font-mono text-foreground">{booking.paymentRef}</span></div>
+            )}
+            {booking.status === "pending" && (
+              <div className="pt-2 border-t border-card-border">
+                {paymentLink ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 bg-background rounded-md border border-card-border px-2 py-1.5">
+                      <span className="text-xs font-mono text-foreground/80 truncate flex-1" data-testid={`text-payment-link-${booking.id}`}>{paymentLink}</span>
+                      <Button size="icon" variant="ghost" className="size-6 shrink-0" onClick={copyLink} data-testid={`button-copy-payment-link-${booking.id}`}>
+                        <Copy className="size-3.5" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Send this to the customer — it'll confirm the booking automatically once they pay.</p>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => generateLink.mutate()} disabled={generateLink.isPending} data-testid={`button-generate-link-${booking.id}`}>
+                    {generateLink.isPending ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Link2 className="size-3.5 mr-1" />} Generate payment link
+                  </Button>
+                )}
+              </div>
             )}
           </section>
 
@@ -513,9 +557,14 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
       };
       return (await apiRequest("POST", "/api/admin/bookings", body)).json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { emailSent?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
-      toast({ title: "Booking added" });
+      const description = form.status !== "confirmed"
+        ? "Marked as pending — no email sent yet."
+        : data.emailSent
+        ? `Confirmation emailed to ${form.customerEmail}.`
+        : "No email on file — the customer wasn't notified.";
+      toast({ title: "Booking added", description });
       setForm(emptyForm);
       onClose();
     },
@@ -606,6 +655,11 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
               <Input type="number" min={0} value={form.depositAmount} onChange={(e) => setForm({ ...form, depositAmount: e.target.value })} placeholder={settings ? gbp(settings.depositAmount) : ""} data-testid="input-addbooking-deposit" />
             </div>
           </div>
+          {form.status === "confirmed" && !form.customerEmail.trim() && (
+            <p className="text-xs text-amber-600 dark:text-amber-500 flex items-center gap-1.5" data-testid="text-addbooking-noemail-warning">
+              <AlertCircle className="size-3.5 shrink-0" /> No email entered — the customer won't get a confirmation email.
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button onClick={() => create.mutate()} disabled={!canSave || create.isPending} data-testid="button-save-addbooking">

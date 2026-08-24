@@ -395,11 +395,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       reminderSentAt: null,
     });
 
-    if (data.status === "confirmed" && booking.customerEmail) {
+    const emailSent = data.status === "confirmed" && !!booking.customerEmail;
+    if (emailSent) {
       emailForBooking(booking).then((b) => sendBookingEmails(b)).catch((e) => console.error("[email]", e));
     }
 
-    res.json(booking);
+    res.json({ ...booking, emailSent });
   });
 
   app.post("/api/admin/bookings/:id/cancel", async (req, res) => {
