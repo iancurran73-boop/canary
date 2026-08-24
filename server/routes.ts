@@ -15,6 +15,7 @@ import {
   insertBlockedDateSchema,
   insertSettingsSchema,
   insertWorkingHoursSchema,
+  insertBarHoursSchema,
   insertGalleryItemSchema,
   insertReviewSchema,
   insertEventSchema,
@@ -300,6 +301,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(await storage.upsertWorkingHours(arr.data));
   });
 
+  app.get("/api/admin/bar-hours", async (_req, res) => {
+    res.json(await storage.listBarHours());
+  });
+  app.put("/api/admin/bar-hours", async (req, res) => {
+    const arr = z.array(insertBarHoursSchema).safeParse(req.body);
+    if (!arr.success) return res.status(400).json({ error: arr.error.flatten() });
+    res.json(await storage.upsertBarHours(arr.data));
+  });
+
   app.get("/api/admin/blocked-dates", async (req, res) => {
     res.json(await storage.listBlockedDates(req.query.from as string | undefined, req.query.to as string | undefined));
   });
@@ -428,6 +438,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/public/working-hours", async (_req, res) => {
     res.json(await storage.listWorkingHours());
+  });
+
+  app.get("/api/public/bar-hours", async (_req, res) => {
+    res.json(await storage.listBarHours());
   });
 
   app.get("/api/public/reviews", async (_req, res) => {

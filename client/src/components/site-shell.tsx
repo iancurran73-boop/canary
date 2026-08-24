@@ -15,7 +15,7 @@ import config from "@/lib/tenant";
 import { useBrand } from "@/lib/brand";
 import { usePages } from "@/lib/pages";
 import { useContent } from "@/lib/content";
-import type { WorkingHours } from "@shared/schema";
+import type { BarHours } from "@shared/schema";
 
 const { business, brand, hours } = config;
 
@@ -31,8 +31,8 @@ function useAddress() {
 
 type HoursDict = Record<string, { enabled: boolean; start?: string; end?: string; note?: string }>;
 
-/** Normalise DB working-hours rows into the keyed dict the renderers expect */
-function dbHoursToDict(rows: WorkingHours[]): HoursDict {
+/** Normalise DB bar-hours rows into the keyed dict the renderers expect */
+function dbHoursToDict(rows: BarHours[]): HoursDict {
   const out: HoursDict = {};
   rows.forEach((r) => {
     out[String(r.dayOfWeek)] = { enabled: r.enabled, start: r.startTime, end: r.endTime };
@@ -41,15 +41,16 @@ function dbHoursToDict(rows: WorkingHours[]): HoursDict {
 }
 
 /**
- * useHours() — opening hours from /api/public/working-hours, falling back to
- * static tenant config when the DB has no rows yet. Shared by the utility bar
- * and the footer so admin edits are reflected everywhere.
+ * useHours() — the bar's general opening hours from /api/public/bar-hours
+ * (display only — separate from room-hire booking availability), falling
+ * back to static tenant config when the DB has no rows yet. Shared by the
+ * utility bar and the footer so admin edits are reflected everywhere.
  */
 function useHours(): HoursDict {
-  const { data: rows } = useQuery<WorkingHours[]>({
-    queryKey: ["/api/public/working-hours"],
+  const { data: rows } = useQuery<BarHours[]>({
+    queryKey: ["/api/public/bar-hours"],
   });
-  return rows && rows.length > 0 ? dbHoursToDict(rows) : (hours as HoursDict);
+  return rows && rows.some((r) => r.enabled) ? dbHoursToDict(rows) : (hours as HoursDict);
 }
 
 /** Render a short summary of opening hours for the top utility bar */

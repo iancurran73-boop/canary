@@ -1,5 +1,6 @@
 import {
   workingHours,
+  barHours,
   blockedDates,
   bookings,
   settings,
@@ -11,6 +12,7 @@ import {
 } from "@shared/schema";
 import type {
   WorkingHours, InsertWorkingHours,
+  BarHours, InsertBarHours,
   BlockedDate, InsertBlockedDate,
   Booking, InsertBooking,
   Settings, InsertSettings,
@@ -46,6 +48,13 @@ sqlite.exec(`
     day_of_week INTEGER NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1,
     start_time TEXT NOT NULL DEFAULT '19:00',
+    end_time TEXT NOT NULL DEFAULT '23:00'
+  );
+  CREATE TABLE IF NOT EXISTS bar_hours (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day_of_week INTEGER NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    start_time TEXT NOT NULL DEFAULT '17:00',
     end_time TEXT NOT NULL DEFAULT '23:00'
   );
   CREATE TABLE IF NOT EXISTS blocked_dates (
@@ -179,6 +188,15 @@ const seedIfEmpty = () => {
     }
   }
 
+  const bh = db.select().from(barHours).all();
+  if (bh.length === 0) {
+    // Placeholder default — Josh sets the venue's real opening hours here,
+    // independent of the room-hire slots above.
+    for (let d = 0; d < 7; d++) {
+      db.insert(barHours).values({ dayOfWeek: d, enabled: false, startTime: "17:00", endTime: "23:00" }).run();
+    }
+  }
+
   const pgs = db.select().from(pages).all();
   if (pgs.length === 0) {
     const now = Date.now();
@@ -199,6 +217,8 @@ export interface IStorage {
   // working hours
   listWorkingHours(): Promise<WorkingHours[]>;
   upsertWorkingHours(rows: InsertWorkingHours[]): Promise<WorkingHours[]>;
+  listBarHours(): Promise<BarHours[]>;
+  upsertBarHours(rows: InsertBarHours[]): Promise<BarHours[]>;
 
   // blocked dates
   listBlockedDates(from?: string, to?: string): Promise<BlockedDate[]>;
@@ -268,6 +288,15 @@ export class DatabaseStorage implements IStorage {
     db.delete(workingHours).run();
     for (const r of rows) db.insert(workingHours).values(r).run();
     return this.listWorkingHours();
+  }
+
+  async listBarHours() {
+    return db.select().from(barHours).orderBy(asc(barHours.dayOfWeek)).all();
+  }
+  async upsertBarHours(rows: InsertBarHours[]) {
+    db.delete(barHours).run();
+    for (const r of rows) db.insert(barHours).values(r).run();
+    return this.listBarHours();
   }
 
   async listBlockedDates(from?: string, to?: string) {

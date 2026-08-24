@@ -618,51 +618,71 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 // ============ AVAILABILITY ============
-function OpeningHoursTab() {
+interface HoursRow {
+  id: number;
+  dayOfWeek: number;
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+// Shared editor — used for both the bar's general opening hours (display
+// only) and the room-hire booking hours (drives actual availability). Same
+// mechanism, different data source, since they can legitimately differ.
+function WeeklyHoursEditor({
+  description,
+  footnote,
+  apiPath,
+  testIdPrefix,
+  defaultSlot,
+}: {
+  description: string;
+  footnote: string;
+  apiPath: string;
+  testIdPrefix: string;
+  defaultSlot: { startTime: string; endTime: string };
+}) {
   const { toast } = useToast();
-  const { data: hours = [] } = useQuery<WorkingHours[]>({ queryKey: ["/api/admin/working-hours"] });
-  const [local, setLocal] = useState<WorkingHours[] | null>(null);
+  const { data: hours = [] } = useQuery<HoursRow[]>({ queryKey: [apiPath] });
+  const [local, setLocal] = useState<HoursRow[] | null>(null);
 
   const current = local ?? hours;
 
   const save = useMutation({
     mutationFn: async () => {
       const body = current.map(({ id, ...rest }) => rest);
-      return (await apiRequest("PUT", "/api/admin/working-hours", body)).json();
+      return (await apiRequest("PUT", apiPath, body)).json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/working-hours"] });
+      queryClient.invalidateQueries({ queryKey: [apiPath] });
       setLocal(null);
       toast({ title: "Hours saved" });
     },
   });
 
-  const updateSlot = (id: number, patch: Partial<WorkingHours>) => {
+  const updateSlot = (id: number, patch: Partial<HoursRow>) => {
     setLocal(current.map((w) => (w.id === id ? { ...w, ...patch } : w)));
   };
   const addSlot = (dayOfWeek: number) => {
     const tempId = -(Date.now() + Math.floor(Math.random() * 1000));
-    setLocal([...current, { id: tempId, dayOfWeek, enabled: true, startTime: "13:00", endTime: "17:00" }]);
+    setLocal([...current, { id: tempId, dayOfWeek, enabled: true, ...defaultSlot }]);
   };
   const removeSlot = (id: number) => {
     setLocal(current.filter((w) => w.id !== id));
   };
 
   return (
-    <div className="space-y-6 mt-5">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Opening hours</h1>
-        <p className="text-sm text-muted-foreground">Customers can only book within these hours.</p>
-      </div>
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">{description}</p>
 
       <Card className="p-2 bg-card divide-y divide-card-border">
         {DAYS.map((dayName, d) => {
           const rows = current.filter((w) => w.dayOfWeek === d).sort((a, b) => a.startTime.localeCompare(b.startTime));
           return (
-            <div key={d} className="p-3 space-y-2" data-testid={`row-hours-${d}`}>
+            <div key={d} className="p-3 space-y-2" data-testid={`row-${testIdPrefix}-${d}`}>
               <div className="flex items-center justify-between">
                 <div className="font-medium text-foreground">{dayName}</div>
-                <Button size="sm" variant="ghost" onClick={() => addSlot(d)} data-testid={`button-add-slot-${d}`}>
+                <Button size="sm" variant="ghost" onClick={() => addSlot(d)} data-testid={`button-add-${testIdPrefix}-slot-${d}`}>
                   <Plus className="size-3.5 mr-1" /> Add slot
                 </Button>
               </div>
@@ -671,14 +691,14 @@ function OpeningHoursTab() {
               ) : (
                 <div className="space-y-2">
                   {rows.map((w) => (
-                    <div key={w.id} className="flex flex-wrap items-center gap-2" data-testid={`row-slot-${w.id}`}>
-                      <Switch checked={w.enabled} onCheckedChange={(v) => updateSlot(w.id, { enabled: v })} data-testid={`switch-slot-${w.id}`} />
+                    <div key={w.id} className="flex flex-wrap items-center gap-2" data-testid={`row-${testIdPrefix}-slot-${w.id}`}>
+                      <Switch checked={w.enabled} onCheckedChange={(v) => updateSlot(w.id, { enabled: v })} data-testid={`switch-${testIdPrefix}-slot-${w.id}`} />
                       <div className="flex items-center gap-2 w-full pl-[2.75rem] sm:w-auto sm:flex-1 sm:ml-1 sm:pl-0">
-                        <Input type="time" value={w.startTime} onChange={(e) => updateSlot(w.id, { startTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-slot-start-${w.id}`} />
+                        <Input type="time" value={w.startTime} onChange={(e) => updateSlot(w.id, { startTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-${testIdPrefix}-slot-start-${w.id}`} />
                         <span className="text-muted-foreground shrink-0">to</span>
-                        <Input type="time" value={w.endTime} onChange={(e) => updateSlot(w.id, { endTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-slot-end-${w.id}`} />
+                        <Input type="time" value={w.endTime} onChange={(e) => updateSlot(w.id, { endTime: e.target.value })} className="w-28 min-w-0" data-testid={`input-${testIdPrefix}-slot-end-${w.id}`} />
                       </div>
-                      <Button size="icon" variant="ghost" onClick={() => removeSlot(w.id)} data-testid={`button-remove-slot-${w.id}`}>
+                      <Button size="icon" variant="ghost" onClick={() => removeSlot(w.id)} data-testid={`button-remove-${testIdPrefix}-slot-${w.id}`}>
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
@@ -689,15 +709,33 @@ function OpeningHoursTab() {
           );
         })}
       </Card>
-      <p className="text-xs text-muted-foreground -mt-3">A day can have more than one slot — e.g. an afternoon session and a separate evening one. Each is a distinct bookable start time.</p>
+      <p className="text-xs text-muted-foreground">{footnote}</p>
       {local && (
         <div className="flex gap-2">
-          <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-hours">
+          <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid={`button-save-${testIdPrefix}`}>
             {save.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Save changes
           </Button>
           <Button variant="ghost" onClick={() => setLocal(null)}>Reset</Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function OpeningHoursTab() {
+  return (
+    <div className="space-y-6 mt-5">
+      <div>
+        <h1 className="font-display text-2xl font-bold">Opening hours</h1>
+        <p className="text-sm text-muted-foreground -mt-1">The bar's general hours — shown on the site. Separate from when the room can actually be booked (see Room Availability) — the bar can be open at different times to room hire.</p>
+      </div>
+      <WeeklyHoursEditor
+        description="Shown in the site header, footer and contact page."
+        footnote="A day can have more than one slot if needed, e.g. a daytime and an evening session."
+        apiPath="/api/admin/bar-hours"
+        testIdPrefix="bar"
+        defaultSlot={{ startTime: "17:00", endTime: "23:00" }}
+      />
     </div>
   );
 }
@@ -722,39 +760,54 @@ function RoomAvailabilityTab() {
   });
 
   return (
-    <div className="space-y-6 mt-5">
+    <div className="space-y-8 mt-5">
       <div>
         <h1 className="font-display text-2xl font-bold">Room availability</h1>
-        <p className="text-sm text-muted-foreground">Block specific dates the room can't be booked — holidays, private events, maintenance, etc. This is separate from your weekly opening hours.</p>
+        <p className="text-sm text-muted-foreground -mt-1">Controls when the room can actually be booked online.</p>
       </div>
 
-      <Card className="p-4 bg-card">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <Label>Date</Label>
-            <Input type="date" value={blockDate} onChange={(e) => setBlockDate(e.target.value)} data-testid="input-block-date" />
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <Label>Reason (optional)</Label>
-            <Input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Holiday, personal, etc." data-testid="input-block-reason" />
-          </div>
-          <Button onClick={() => addBlock.mutate()} data-testid="button-add-block">Block date</Button>
-        </div>
-      </Card>
-      <div className="space-y-2">
-        {blocked.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No blocked dates.</p>
-        ) : blocked.map((b) => (
-          <Card key={b.id} className="p-3 flex items-center justify-between bg-card">
+      <div className="space-y-3">
+        <h2 className="font-display text-lg font-bold">Room hire hours</h2>
+        <WeeklyHoursEditor
+          description="Customers can only book within these hours."
+          footnote="A day can have more than one slot — e.g. an afternoon session and a separate evening one. Each is a distinct bookable start time."
+          apiPath="/api/admin/working-hours"
+          testIdPrefix="hours"
+          defaultSlot={{ startTime: "13:00", endTime: "17:00" }}
+        />
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-display text-lg font-bold">Blocked dates</h2>
+        <p className="text-sm text-muted-foreground -mt-2">One-off dates the room can't be booked, even within the hours above — holidays, private events, maintenance, etc.</p>
+        <Card className="p-4 bg-card">
+          <div className="flex flex-wrap items-end gap-3">
             <div>
-              <div className="font-medium">{formatDate(b.date)}</div>
-              {b.reason && <div className="text-xs text-muted-foreground">{b.reason}</div>}
+              <Label>Date</Label>
+              <Input type="date" value={blockDate} onChange={(e) => setBlockDate(e.target.value)} data-testid="input-block-date" />
             </div>
-            <Button size="icon" variant="ghost" onClick={() => removeBlock.mutate(b.id)} data-testid={`button-remove-block-${b.id}`}>
-              <Trash2 className="size-4" />
-            </Button>
-          </Card>
-        ))}
+            <div className="flex-1 min-w-[200px]">
+              <Label>Reason (optional)</Label>
+              <Input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Holiday, personal, etc." data-testid="input-block-reason" />
+            </div>
+            <Button onClick={() => addBlock.mutate()} data-testid="button-add-block">Block date</Button>
+          </div>
+        </Card>
+        <div className="space-y-2">
+          {blocked.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No blocked dates.</p>
+          ) : blocked.map((b) => (
+            <Card key={b.id} className="p-3 flex items-center justify-between bg-card">
+              <div>
+                <div className="font-medium">{formatDate(b.date)}</div>
+                {b.reason && <div className="text-xs text-muted-foreground">{b.reason}</div>}
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => removeBlock.mutate(b.id)} data-testid={`button-remove-block-${b.id}`}>
+                <Trash2 className="size-4" />
+              </Button>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

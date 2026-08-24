@@ -15,6 +15,21 @@ export const insertWorkingHoursSchema = createInsertSchema(workingHours).omit({ 
 export type InsertWorkingHours = z.infer<typeof insertWorkingHoursSchema>;
 export type WorkingHours = typeof workingHours.$inferSelect;
 
+// General bar opening hours — display-only (site header/footer), independent
+// of workingHours above (which controls what's actually bookable). The bar
+// can be open at different times than the room is available for private hire.
+export const barHours = sqliteTable("bar_hours", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  dayOfWeek: integer("day_of_week").notNull(), // 0..6
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  startTime: text("start_time").notNull().default("17:00"), // "HH:MM"
+  endTime: text("end_time").notNull().default("23:00"),
+});
+
+export const insertBarHoursSchema = createInsertSchema(barHours).omit({ id: true });
+export type InsertBarHours = z.infer<typeof insertBarHoursSchema>;
+export type BarHours = typeof barHours.$inferSelect;
+
 // One-off blocked times (private events, closures)
 export const blockedDates = sqliteTable("blocked_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
