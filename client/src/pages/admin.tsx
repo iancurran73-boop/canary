@@ -18,7 +18,7 @@ import { gbp, formatDuration, formatDate, formatDateShort, todayIso, addDays } f
 import { BrandMark } from "@/components/brand-mark";
 import {
   Calendar, PartyPopper, Clock, Settings as SettingsIcon, Plus, Trash2, Pencil, Bell, ChevronLeft,
-  CalendarOff, CheckCircle2, X, Loader2, BellRing, AlertCircle, FileText,
+  CalendarOff, Ban, CheckCircle2, X, Loader2, BellRing, AlertCircle, FileText,
   ChevronUp, ChevronDown, GripVertical, Image as ImageIcon, Star, MessageSquare, CreditCard,
   Building2, Palette, ScrollText, MapPin, Mail, Layers, Eye, EyeOff,
 } from "lucide-react";
@@ -32,7 +32,7 @@ import { ImageDropzone } from "@/components/content/ImageDropzone";
 import { InlineText } from "@/components/content/InlineText";
 import config from "@/lib/tenant";
 
-type Tab = "today" | "schedule" | "availability" | "settings" | "content" | "pages" | "reviews" | "events" | "payments" | "business" | "branding" | "policy" | "emails";
+type Tab = "today" | "schedule" | "hours" | "blocked" | "settings" | "content" | "pages" | "reviews" | "events" | "payments" | "business" | "branding" | "policy" | "emails";
 
 type AdminBooking = Booking & { returningCustomer?: ReturningCustomerInfo | null };
 
@@ -118,7 +118,8 @@ function AdminInner() {
                 <TabsList className="bg-transparent p-0 h-auto flex flex-wrap gap-2 justify-start">
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="today" data-testid="tab-today"><Calendar className="size-4 mr-1.5" /> Today</TabsTrigger>
                   <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="schedule" data-testid="tab-schedule"><Clock className="size-4 mr-1.5" /> Schedule</TabsTrigger>
-                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="availability" data-testid="tab-availability"><CalendarOff className="size-4 mr-1.5" /> Hours</TabsTrigger>
+                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="hours" data-testid="tab-hours"><CalendarOff className="size-4 mr-1.5" /> Opening Hours</TabsTrigger>
+                  <TabsTrigger className="flex-none px-3 py-1.5 text-sm" value="blocked" data-testid="tab-blocked"><Ban className="size-4 mr-1.5" /> Room Availability</TabsTrigger>
                 </TabsList>
               </NavGroup>
               <NavGroup label="Content">
@@ -143,7 +144,8 @@ function AdminInner() {
 
             <TabsContent value="today"><TodayTab /></TabsContent>
             <TabsContent value="schedule"><ScheduleTab /></TabsContent>
-            <TabsContent value="availability"><AvailabilityTab /></TabsContent>
+            <TabsContent value="hours"><OpeningHoursTab /></TabsContent>
+            <TabsContent value="blocked"><RoomAvailabilityTab /></TabsContent>
             <TabsContent value="content"><ContentTab /></TabsContent>
             <TabsContent value="pages"><PagesTab /></TabsContent>
             <TabsContent value="reviews"><ReviewsTab /></TabsContent>
@@ -163,7 +165,8 @@ function AdminInner() {
             {([
               ["today", Calendar, "Today"],
               ["schedule", Clock, "Schedule"],
-              ["availability", CalendarOff, "Hours"],
+              ["hours", CalendarOff, "Hours"],
+              ["blocked", Ban, "Blocked"],
               ["content", FileText, "Content"],
               ["pages", Layers, "Pages"],
               ["reviews", Star, "Reviews"],
@@ -615,10 +618,9 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 // ============ AVAILABILITY ============
-function AvailabilityTab() {
+function OpeningHoursTab() {
   const { toast } = useToast();
   const { data: hours = [] } = useQuery<WorkingHours[]>({ queryKey: ["/api/admin/working-hours"] });
-  const { data: blocked = [] } = useQuery<BlockedDate[]>({ queryKey: ["/api/admin/blocked-dates"] });
   const [local, setLocal] = useState<WorkingHours[] | null>(null);
 
   const current = local ?? hours;
@@ -646,25 +648,10 @@ function AvailabilityTab() {
     setLocal(current.filter((w) => w.id !== id));
   };
 
-  const [blockDate, setBlockDate] = useState(todayIso());
-  const [blockReason, setBlockReason] = useState("");
-  const addBlock = useMutation({
-    mutationFn: async () => (await apiRequest("POST", "/api/admin/blocked-dates", { date: blockDate, reason: blockReason })).json(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-dates"] });
-      setBlockReason("");
-      toast({ title: "Date blocked" });
-    },
-  });
-  const removeBlock = useMutation({
-    mutationFn: async (id: number) => (await apiRequest("DELETE", `/api/admin/blocked-dates/${id}`)).json(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-dates"] }),
-  });
-
   return (
     <div className="space-y-6 mt-5">
       <div>
-        <h1 className="font-display text-2xl font-bold">Working hours</h1>
+        <h1 className="font-display text-2xl font-bold">Opening hours</h1>
         <p className="text-sm text-muted-foreground">Customers can only book within these hours.</p>
       </div>
 
@@ -711,37 +698,63 @@ function AvailabilityTab() {
           <Button variant="ghost" onClick={() => setLocal(null)}>Reset</Button>
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="pt-2">
-        <h2 className="font-display text-xl font-bold mb-3">Blocked dates</h2>
-        <Card className="p-4 bg-card">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <Label>Date</Label>
-              <Input type="date" value={blockDate} onChange={(e) => setBlockDate(e.target.value)} data-testid="input-block-date" />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label>Reason (optional)</Label>
-              <Input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Holiday, personal, etc." data-testid="input-block-reason" />
-            </div>
-            <Button onClick={() => addBlock.mutate()} data-testid="button-add-block">Block date</Button>
+function RoomAvailabilityTab() {
+  const { toast } = useToast();
+  const { data: blocked = [] } = useQuery<BlockedDate[]>({ queryKey: ["/api/admin/blocked-dates"] });
+
+  const [blockDate, setBlockDate] = useState(todayIso());
+  const [blockReason, setBlockReason] = useState("");
+  const addBlock = useMutation({
+    mutationFn: async () => (await apiRequest("POST", "/api/admin/blocked-dates", { date: blockDate, reason: blockReason })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-dates"] });
+      setBlockReason("");
+      toast({ title: "Date blocked" });
+    },
+  });
+  const removeBlock = useMutation({
+    mutationFn: async (id: number) => (await apiRequest("DELETE", `/api/admin/blocked-dates/${id}`)).json(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-dates"] }),
+  });
+
+  return (
+    <div className="space-y-6 mt-5">
+      <div>
+        <h1 className="font-display text-2xl font-bold">Room availability</h1>
+        <p className="text-sm text-muted-foreground">Block specific dates the room can't be booked — holidays, private events, maintenance, etc. This is separate from your weekly opening hours.</p>
+      </div>
+
+      <Card className="p-4 bg-card">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <Label>Date</Label>
+            <Input type="date" value={blockDate} onChange={(e) => setBlockDate(e.target.value)} data-testid="input-block-date" />
           </div>
-        </Card>
-        <div className="space-y-2 mt-3">
-          {blocked.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No blocked dates.</p>
-          ) : blocked.map((b) => (
-            <Card key={b.id} className="p-3 flex items-center justify-between bg-card">
-              <div>
-                <div className="font-medium">{formatDate(b.date)}</div>
-                {b.reason && <div className="text-xs text-muted-foreground">{b.reason}</div>}
-              </div>
-              <Button size="icon" variant="ghost" onClick={() => removeBlock.mutate(b.id)} data-testid={`button-remove-block-${b.id}`}>
-                <Trash2 className="size-4" />
-              </Button>
-            </Card>
-          ))}
+          <div className="flex-1 min-w-[200px]">
+            <Label>Reason (optional)</Label>
+            <Input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Holiday, personal, etc." data-testid="input-block-reason" />
+          </div>
+          <Button onClick={() => addBlock.mutate()} data-testid="button-add-block">Block date</Button>
         </div>
+      </Card>
+      <div className="space-y-2">
+        {blocked.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No blocked dates.</p>
+        ) : blocked.map((b) => (
+          <Card key={b.id} className="p-3 flex items-center justify-between bg-card">
+            <div>
+              <div className="font-medium">{formatDate(b.date)}</div>
+              {b.reason && <div className="text-xs text-muted-foreground">{b.reason}</div>}
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => removeBlock.mutate(b.id)} data-testid={`button-remove-block-${b.id}`}>
+              <Trash2 className="size-4" />
+            </Button>
+          </Card>
+        ))}
       </div>
     </div>
   );
