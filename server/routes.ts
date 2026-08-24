@@ -172,6 +172,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     const now = new Date();
     const minNoticeMs = settings.minNoticeHours * 3600_000;
+    const maxAdvanceMs = settings.maxAdvanceDays * 86400_000;
 
     const unavailable: string[] = [];
     if (settings.acceptingBookings) {
@@ -182,7 +183,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const daySlots = slotsByDay.get(cursor.getDay()) ?? [];
         const dateBlocks = blocksByDate.get(dateStr) ?? [];
         const dateBookings = bookingsByDate.get(dateStr) ?? [];
-        const ok = daySlots.length > 0 &&
+        const withinAdvanceWindow = cursor.getTime() - now.getTime() <= maxAdvanceMs;
+        const ok = withinAdvanceWindow && daySlots.length > 0 &&
           daySlots.some((w) => slotIsBookable(w, cursor, now, minNoticeMs, dateBlocks) &&
             !dateBookings.some((b) => timesOverlap(w.startTime, w.endTime, b.startTime, b.endTime)));
         if (!ok) unavailable.push(dateStr);
