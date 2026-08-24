@@ -509,6 +509,7 @@ export type EmailConfig = {
 
 export type EmailTemplate = { subject: string; body: string };
 export type EmailTemplates = {
+  bookingReceived: EmailTemplate;
   customerConfirm: EmailTemplate;
   ownerAlert: EmailTemplate;
   newBookingRequest: EmailTemplate;
@@ -533,6 +534,23 @@ const defaultEmailConfig: EmailConfig = {
 };
 
 const defaultEmailTemplates: EmailTemplates = {
+  bookingReceived: {
+    subject: "We've got your booking request — {business}",
+    body: `Hi {customer},
+
+Thanks for your booking request at {business}! Here's what you sent us:
+
+Date: {date} at {time}
+Party size: {partySize}
+Occasion: {eventType}
+
+{depositStatus}
+
+{ownerName} will be in touch shortly to confirm and take payment — you'll get another email as soon as it's locked in.
+
+Thanks,
+{ownerName}`,
+  },
   customerConfirm: {
     subject: "Your booking at {business} on {date}",
     body: `Hi {customer},
@@ -641,6 +659,7 @@ export function setEmailConfig(cfg: EmailConfig): EmailConfig {
 export function getEmailTemplates(): EmailTemplates {
   const stored = readJSON<Partial<EmailTemplates>>(EMAIL_TEMPLATES_KEY) ?? {};
   return {
+    bookingReceived: { ...defaultEmailTemplates.bookingReceived, ...(stored.bookingReceived ?? {}) },
     customerConfirm: { ...defaultEmailTemplates.customerConfirm, ...(stored.customerConfirm ?? {}) },
     ownerAlert: { ...defaultEmailTemplates.ownerAlert, ...(stored.ownerAlert ?? {}) },
     newBookingRequest: { ...defaultEmailTemplates.newBookingRequest, ...(stored.newBookingRequest ?? {}) },

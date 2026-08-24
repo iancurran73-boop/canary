@@ -2181,6 +2181,7 @@ type EmailDiagnostics = {
 
 type EmailTemplate = { subject: string; body: string };
 type EmailTemplatesForm = {
+  bookingReceived: EmailTemplate;
   customerConfirm: EmailTemplate;
   ownerAlert: EmailTemplate;
   newBookingRequest: EmailTemplate;
@@ -2369,6 +2370,21 @@ function EmailsTab() {
         </div>
 
         <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="booking-received">
+            <AccordionTrigger data-testid="accordion-booking-received">Booking received (to customer)</AccordionTrigger>
+            <AccordionContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">Sent to the customer the moment they submit a request — before it's confirmed or paid — so they know it went through while they wait.</p>
+              <div className="space-y-2">
+                <Label htmlFor="received-subject">Subject</Label>
+                <Input id="received-subject" value={tForm.bookingReceived.subject} onChange={(e) => setTForm({ ...tForm, bookingReceived: { ...tForm.bookingReceived, subject: e.target.value } })} data-testid="input-received-subject" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="received-body">Body</Label>
+                <Textarea id="received-body" rows={12} value={tForm.bookingReceived.body} onChange={(e) => setTForm({ ...tForm, bookingReceived: { ...tForm.bookingReceived, body: e.target.value } })} data-testid="input-received-body" />
+                <p className="text-xs text-muted-foreground">{NEW_BOOKING_PLACEHOLDER_HINT}</p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
           <AccordionItem value="customer">
             <AccordionTrigger data-testid="accordion-customer">Customer confirmation</AccordionTrigger>
             <AccordionContent className="space-y-3">

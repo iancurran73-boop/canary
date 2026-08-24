@@ -10,7 +10,7 @@ import {
   type EmailConfig,
   type EmailTemplates,
 } from "./storage";
-import { sendBookingEmails, sendNewBookingAlert, sendCancellationEmail, sendTestEmail, verifySmtpConnection } from "./email";
+import { sendBookingEmails, sendNewBookingAlert, sendBookingReceivedEmail, sendCancellationEmail, sendTestEmail, verifySmtpConnection } from "./email";
 import {
   insertBlockedDateSchema,
   insertSettingsSchema,
@@ -236,6 +236,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     // separate from the "booking confirmed" alert below, which only fires
     // once the booking is actually confirmed (payment or manual review).
     emailForBooking(booking).then((b) => sendNewBookingAlert(b)).catch((e) => console.error("[email]", e));
+    // Also tell the customer right away so they're not left wondering
+    // whether it went through while payment/confirmation is pending.
+    emailForBooking(booking).then((b) => sendBookingReceivedEmail(b)).catch((e) => console.error("[email]", e));
 
     res.json({
       bookingId: booking.id,

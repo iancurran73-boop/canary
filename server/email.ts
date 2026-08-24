@@ -44,6 +44,37 @@ function render(tmpl: string, vars: Record<string, string | number | undefined>)
   return tmpl.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? "").toString());
 }
 
+// Sent to the customer immediately when a booking request comes in — before
+// it's confirmed or paid — so they're not left wondering if it went through
+// while waiting on the owner (or a manual/slow payment) to confirm it.
+export async function sendBookingReceivedEmail(booking: any): Promise<void> {
+  const cfg = getEmailConfig();
+  if (!cfg || !cfg.enabled || !cfg.fromEmail) return;
+  if (!booking.email) return;
+  const templates = getEmailTemplates();
+  const business = getBusinessConfig() ?? {};
+  const vars = {
+    business: business.name ?? "The Singing Canary",
+    ownerName: business.ownerName ?? "The team",
+    customer: booking.customerName ?? "",
+    phone: booking.phone ?? "",
+    email: booking.email ?? "",
+    date: booking.date ?? "",
+    time: booking.time ?? "",
+    eventType: booking.eventType ?? "",
+    partySize: booking.partySize ?? "",
+    depositStatus: `Awaiting deposit of £${booking.depositPaid}`,
+  };
+  const from = `${cfg.fromName ?? business.name ?? "The Singing Canary"} <${cfg.fromEmail}>`;
+  try {
+    await sendViaSmtp({
+      from, to: booking.email,
+      subject: render(templates.bookingReceived.subject, vars),
+      text: render(templates.bookingReceived.body, vars),
+    });
+  } catch (e) { console.error("[email] booking received send failed", e); }
+}
+
 export async function sendBookingEmails(booking: any) {
   const cfg = getEmailConfig();
   if (!cfg || !cfg.enabled || !cfg.fromEmail) return;
