@@ -20,7 +20,7 @@ import {
   insertReviewSchema,
   insertEventSchema,
 } from "@shared/schema";
-import type { WorkingHours, BlockedDate } from "@shared/schema";
+import type { WorkingHours, BlockedDate, Booking } from "@shared/schema";
 import { PAGE_LAYOUT_IDS } from "@shared/page-layouts";
 import { requireAdminAuth, issueSessionCookie, clearSessionCookie, checkLoginRateLimit, verifyPasscode } from "./adminAuth";
 import { z } from "zod";
@@ -53,6 +53,18 @@ function slotIsBookable(
     if (!bd.startTime || !bd.endTime) return true; // whole day blocked
     return startMin < toMinutes(bd.endTime) && endMin > toMinutes(bd.startTime);
   });
+}
+
+// Whether two start/end time ranges overlap, handling ranges that cross
+// midnight (end <= start).
+function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  const aStartMin = toMinutes(aStart);
+  let aEndMin = toMinutes(aEnd);
+  if (aEndMin <= aStartMin) aEndMin += 1440;
+  const bStartMin = toMinutes(bStart);
+  let bEndMin = toMinutes(bEnd);
+  if (bEndMin <= bStartMin) bEndMin += 1440;
+  return aStartMin < bEndMin && aEndMin > bStartMin;
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
@@ -107,18 +119,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const daySlots = (await storage.listWorkingHours()).filter((w) => w.dayOfWeek === dow && w.enabled);
     if (daySlots.length === 0) return res.json({ slots: [] });
 
-    // Existing bookings that day — the room is exclusive for the whole day,
-    // not just the booked session, so any pending/confirmed booking at all
-    // takes the entire day off the table.
+    // Existing bookings that day — only a slot that overlaps an existing
+    // pending/confirmed booking is taken; other slots that day stay bookable.
     const dayBookings = (await storage.listBookings(date, date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    if (dayBookings.length > 0) return res.json({ slots: [], durationMinutes: settings.sessionDurationMinutes });
 
     const blocks = await storage.listBlockedDates(date, date);
 
     const slots = daySlots
       .filter((w) => slotIsBookable(w, target, now, minNoticeMs, blocks))
+      .filter((w) => !dayBookings.some((b) => timesOverlap(w.startTime, w.endTime, b.startTime, b.endTime)))
       .map((w) => w.startTime)
       .sort();
 
@@ -145,7 +156,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const dayBookings = (await storage.listBookings(from, to)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    const bookedDates = new Set(dayBookings.map((b) => b.date));
+    const bookingsByDate = new Map<string, Booking[]>();
+    for (const b of dayBookings) {
+      const list = bookingsByDate.get(b.date) ?? [];
+      list.push(b);
+      bookingsByDate.set(b.date, list);
+    }
     const blocks = await storage.listBlockedDates(from, to);
     const blocksByDate = new Map<string, BlockedDate[]>();
     for (const bd of blocks) {
@@ -165,8 +181,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const dateStr = cursor.toISOString().slice(0, 10);
         const daySlots = slotsByDay.get(cursor.getDay()) ?? [];
         const dateBlocks = blocksByDate.get(dateStr) ?? [];
-        const ok = daySlots.length > 0 && !bookedDates.has(dateStr) &&
-          daySlots.some((w) => slotIsBookable(w, cursor, now, minNoticeMs, dateBlocks));
+        const dateBookings = bookingsByDate.get(dateStr) ?? [];
+        const ok = daySlots.length > 0 &&
+          daySlots.some((w) => slotIsBookable(w, cursor, now, minNoticeMs, dateBlocks) &&
+            !dateBookings.some((b) => timesOverlap(w.startTime, w.endTime, b.startTime, b.endTime)));
         if (!ok) unavailable.push(dateStr);
         cursor.setDate(cursor.getDate() + 1);
       }
@@ -206,12 +224,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!matchingSlot) return res.status(400).json({ error: "That start time is no longer available" });
     const endTime = matchingSlot.endTime;
 
-    // Final check (race protection) — the room is exclusive for the whole
-    // day, so any existing pending/confirmed booking that date blocks this one.
+    // Final check (race protection) — only a conflict with this specific
+    // slot blocks it; other slots that day can still be booked separately.
     const sameDay = (await storage.listBookings(data.date, data.date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    if (sameDay.length > 0) return res.status(409).json({ error: "That day just got booked — please pick another." });
+    const conflict = sameDay.some((b) => timesOverlap(matchingSlot.startTime, matchingSlot.endTime, b.startTime, b.endTime));
+    if (conflict) return res.status(409).json({ error: "That slot just got booked — please pick another." });
 
     const booking = await storage.createBooking({
       customerName: data.customerName,
@@ -343,7 +362,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // endpoint, this isn't subject to min-notice/max-advance windows — the
   // admin can book any date. Still must match a defined slot for that
   // day-of-week (so endTime/duration stay consistent with everything else),
-  // and still respects the one-booking-per-day rule.
+  // and still can't overlap an existing booking's slot.
   app.post("/api/admin/bookings", async (req, res) => {
     const bodySchema = z.object({
       customerName: z.string().min(1),
@@ -373,7 +392,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const sameDay = (await storage.listBookings(data.date, data.date)).filter(
       (b) => b.status === "pending" || b.status === "confirmed"
     );
-    if (sameDay.length > 0) return res.status(409).json({ error: "That day already has a booking." });
+    const conflict = sameDay.some((b) => timesOverlap(matchingSlot.startTime, matchingSlot.endTime, b.startTime, b.endTime));
+    if (conflict) return res.status(409).json({ error: "That slot already has a booking." });
 
     const settings = await storage.getSettings();
     const booking = await storage.createBooking({

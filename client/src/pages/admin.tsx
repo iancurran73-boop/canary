@@ -36,6 +36,20 @@ type Tab = "today" | "schedule" | "hours" | "blocked" | "settings" | "content" |
 
 type AdminBooking = Booking & { returningCustomer?: ReturningCustomerInfo | null };
 
+function toMinutesLocal(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function slotsOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  const aS = toMinutesLocal(aStart);
+  let aE = toMinutesLocal(aEnd);
+  if (aE <= aS) aE += 1440;
+  const bS = toMinutesLocal(bStart);
+  let bE = toMinutesLocal(bEnd);
+  if (bE <= bS) bE += 1440;
+  return aS < bE && aE > bS;
+}
+
 function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -535,10 +549,23 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
   };
   const [form, setForm] = useState(emptyForm);
 
+  const { data: dateBookings = [] } = useQuery<AdminBooking[]>({
+    queryKey: ["/api/admin/bookings", { from: form.date, to: form.date }],
+    queryFn: async () => (await apiRequest("GET", `/api/admin/bookings?from=${form.date}&to=${form.date}`)).json(),
+    enabled: open && !!form.date,
+  });
+  const bookedSlots = useMemo(
+    () => dateBookings.filter((b) => b.status === "pending" || b.status === "confirmed"),
+    [dateBookings]
+  );
+
   const daySlots = useMemo(() => {
     const dow = new Date(form.date + "T00:00:00").getDay();
-    return workingHours.filter((w) => w.dayOfWeek === dow && w.enabled).sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [workingHours, form.date]);
+    return workingHours
+      .filter((w) => w.dayOfWeek === dow && w.enabled)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      .map((w) => ({ ...w, taken: bookedSlots.some((b) => slotsOverlap(w.startTime, w.endTime, b.startTime, b.endTime)) }));
+  }, [workingHours, form.date, bookedSlots]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -585,7 +612,7 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add a booking</DialogTitle></DialogHeader>
-        <p className="text-xs text-muted-foreground -mt-2">For phone or walk-in enquiries. Follows the same one-booking-per-day rule as online bookings.</p>
+        <p className="text-xs text-muted-foreground -mt-2">For phone or walk-in enquiries. Any slot not already booked that day can be added.</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -601,7 +628,9 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
                   <SelectTrigger data-testid="select-addbooking-time"><SelectValue placeholder="Choose a slot" /></SelectTrigger>
                   <SelectContent>
                     {daySlots.map((w) => (
-                      <SelectItem key={w.id} value={w.startTime}>{w.startTime} – {w.endTime}</SelectItem>
+                      <SelectItem key={w.id} value={w.startTime} disabled={w.taken}>
+                        {w.startTime} – {w.endTime}{w.taken ? " (booked)" : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
