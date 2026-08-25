@@ -537,6 +537,8 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
   const emptyForm = {
     date: todayIso(),
     startTime: "",
+    endTime: "",
+    override: false,
     customerName: "",
     customerPhone: "",
     customerEmail: "",
@@ -580,6 +582,8 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
         date: form.date,
         startTime: form.startTime,
         status: form.status,
+        override: form.override,
+        ...(form.override ? { endTime: form.endTime } : {}),
         ...(form.depositAmount ? { depositAmount: Number(form.depositAmount) } : {}),
       };
       return (await apiRequest("POST", "/api/admin/bookings", body)).json();
@@ -606,23 +610,26 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
     onClose();
   }
 
-  const canSave = !!form.customerName.trim() && !!form.startTime && !!form.partySize && Number(form.partySize) >= 1;
+  const canSave = !!form.customerName.trim() && !!form.startTime && !!form.partySize && Number(form.partySize) >= 1
+    && (!form.override || !!form.endTime);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add a booking</DialogTitle></DialogHeader>
-        <p className="text-xs text-muted-foreground -mt-2">For phone or walk-in enquiries. Any slot not already booked that day can be added.</p>
+        <p className="text-xs text-muted-foreground -mt-2">For phone or walk-in enquiries. Any slot not already booked that day can be added — or use Override to add one regardless.</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Date</Label>
-              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, startTime: "" })} data-testid="input-addbooking-date" />
+              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, startTime: "", endTime: "" })} data-testid="input-addbooking-date" />
             </div>
             <div>
               <Label>Start time</Label>
-              {daySlots.length === 0 ? (
-                <p className="text-xs text-muted-foreground mt-2.5">No slots defined for this day — add one in Admin &gt; Hours.</p>
+              {form.override ? (
+                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} data-testid="input-addbooking-start-override" />
+              ) : daySlots.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2.5">No slots defined for this day — add one in Admin &gt; Hours, or use Override below.</p>
               ) : (
                 <Select value={form.startTime} onValueChange={(v) => setForm({ ...form, startTime: v })}>
                   <SelectTrigger data-testid="select-addbooking-time"><SelectValue placeholder="Choose a slot" /></SelectTrigger>
@@ -635,6 +642,29 @@ function AddBookingDialog({ open, onClose }: { open: boolean; onClose: () => voi
                   </SelectContent>
                 </Select>
               )}
+            </div>
+          </div>
+
+          {form.override && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>End time</Label>
+                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} data-testid="input-addbooking-end-override" />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-start gap-2.5 rounded-md border border-dashed border-card-border p-3">
+            <Switch
+              checked={form.override}
+              onCheckedChange={(v) => setForm({ ...form, override: v, startTime: "", endTime: "" })}
+              data-testid="switch-addbooking-override"
+            />
+            <div>
+              <div className="text-sm font-medium text-foreground">Override</div>
+              <p className="text-xs text-muted-foreground">
+                Ignore defined slots and existing bookings — set any start/end time and add the booking regardless. For days with only one slot, or when the room can genuinely take more than the usual limit.
+              </p>
             </div>
           </div>
 

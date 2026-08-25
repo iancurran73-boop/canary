@@ -376,6 +376,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       shoutOuts: z.string().optional().default(""),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       startTime: z.string().regex(HHMM),
+      // Staff-only escape hatch: skip the "must match a defined slot" and
+      // "no existing booking may overlap" checks below, so a phone booking
+      // can go in on a day with only one slot defined, or double up a slot,
+      // when the room can genuinely take it. Never exposed on the public API.
+      override: z.boolean().optional().default(false),
+      endTime: z.string().regex(HHMM).optional(),
       status: z.enum(["pending", "confirmed"]).optional().default("confirmed"),
       depositAmount: z.number().min(0).optional(),
     });
@@ -383,19 +389,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
     const data = parse.data;
 
-    const dow = new Date(data.date + "T00:00:00").getDay();
-    const matchingSlot = (await storage.listWorkingHours()).find(
-      (w) => w.dayOfWeek === dow && w.enabled && w.startTime === data.startTime
-    );
-    if (!matchingSlot) {
-      return res.status(400).json({ error: "That start time isn't a defined slot for this day — add it in Admin > Hours first." });
-    }
+    let endTime: string;
+    if (data.override) {
+      if (!data.endTime) return res.status(400).json({ error: "End time is required when overriding" });
+      endTime = data.endTime;
+    } else {
+      const dow = new Date(data.date + "T00:00:00").getDay();
+      const matchingSlot = (await storage.listWorkingHours()).find(
+        (w) => w.dayOfWeek === dow && w.enabled && w.startTime === data.startTime
+      );
+      if (!matchingSlot) {
+        return res.status(400).json({ error: "That start time isn't a defined slot for this day — add it in Admin > Hours first, or use Override." });
+      }
+      endTime = matchingSlot.endTime;
 
-    const sameDay = (await storage.listBookings(data.date, data.date)).filter(
-      (b) => b.status === "pending" || b.status === "confirmed"
-    );
-    const conflict = sameDay.some((b) => timesOverlap(matchingSlot.startTime, matchingSlot.endTime, b.startTime, b.endTime));
-    if (conflict) return res.status(409).json({ error: "That slot already has a booking." });
+      const sameDay = (await storage.listBookings(data.date, data.date)).filter(
+        (b) => b.status === "pending" || b.status === "confirmed"
+      );
+      const conflict = sameDay.some((b) => timesOverlap(data.startTime, endTime, b.startTime, b.endTime));
+      if (conflict) return res.status(409).json({ error: "That slot already has a booking. Use Override to add it anyway." });
+    }
 
     const settings = await storage.getSettings();
     const booking = await storage.createBooking({
@@ -408,7 +421,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       shoutOuts: data.shoutOuts,
       date: data.date,
       startTime: data.startTime,
-      endTime: matchingSlot.endTime,
+      endTime,
       depositAmount: data.depositAmount ?? settings.depositAmount,
       status: data.status,
       paymentRef: "",
