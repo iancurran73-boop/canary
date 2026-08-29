@@ -153,6 +153,13 @@ for (const sql of bookingAlters) {
   try { sqlite.exec(sql); } catch { /* column already exists */ }
 }
 
+const settingsAlters = [
+  "ALTER TABLE settings ADD COLUMN ics_feed_token TEXT NOT NULL DEFAULT ''",
+];
+for (const sql of settingsAlters) {
+  try { sqlite.exec(sql); } catch { /* column already exists */ }
+}
+
 // --- seed defaults if empty ---
 const seedIfEmpty = () => {
   const settingsRow = db.select().from(settings).get();

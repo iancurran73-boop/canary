@@ -1996,6 +1996,20 @@ function SettingsTab() {
     },
   });
 
+  const { data: icsFeed } = useQuery<{ url: string }>({ queryKey: ["/api/admin/ics-feed"] });
+  const regenerateIcs = useMutation({
+    mutationFn: async () => (await apiRequest("POST", "/api/admin/ics-feed/regenerate", {})).json() as Promise<{ url: string }>,
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/admin/ics-feed"], data);
+      toast({ title: "Link regenerated", description: "The old link has stopped working — you'll need to re-subscribe with the new one." });
+    },
+  });
+  const copyIcsUrl = () => {
+    if (!icsFeed?.url) return;
+    navigator.clipboard.writeText(icsFeed.url);
+    toast({ title: "Copied" });
+  };
+
   if (!settings) return <div className="py-12 text-center"><Loader2 className="size-5 animate-spin inline" /></div>;
 
   return (
@@ -2028,7 +2042,28 @@ function SettingsTab() {
           <Input type="email" defaultValue={settings.notifyEmail} onBlur={(e) => update.mutate({ notifyEmail: e.target.value })} data-testid="input-notify-email" />
         </div>
         <Toggle label="iPhone push notifications" desc="Get an alert the moment a booking is paid" checked={settings.pushEnabled} onChange={(v) => update.mutate({ pushEnabled: v })} testid="switch-push" icon={<BellRing className="size-4" />} />
-        <Toggle label="Google Calendar sync" desc="Bookings appear in your calendar automatically" checked={settings.calendarConnected} onChange={(v) => update.mutate({ calendarConnected: v })} testid="switch-calendar" icon={<Calendar className="size-4" />} />
+      </Card>
+
+      <Card className="p-4 bg-card space-y-3">
+        <div className="flex items-start gap-2">
+          <Calendar className="size-4 text-muted-foreground mt-0.5" />
+          <div>
+            <h2 className="font-display font-bold">Calendar</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Subscribe to this link from your iPhone (Settings &gt; Calendar &gt; Accounts &gt; Add Subscribed Calendar) to see confirmed bookings alongside your own — works in Apple Calendar, Google Calendar or Outlook. It updates on its own every so often; not instant, but no login needed.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input readOnly value={icsFeed?.url ?? ""} onFocus={(e) => e.target.select()} className="font-mono text-xs" data-testid="input-ics-url" />
+          <Button variant="outline" size="icon" onClick={copyIcsUrl} disabled={!icsFeed?.url} data-testid="button-copy-ics-url">
+            <Copy className="size-4" />
+          </Button>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => regenerateIcs.mutate()} disabled={regenerateIcs.isPending} data-testid="button-regenerate-ics">
+          {regenerateIcs.isPending && <Loader2 className="size-4 mr-1 animate-spin" />} Regenerate link
+        </Button>
+        <p className="text-xs text-muted-foreground">Only regenerate if this link has leaked — it breaks the old one, so you'll need to re-subscribe on your phone.</p>
       </Card>
     </div>
   );

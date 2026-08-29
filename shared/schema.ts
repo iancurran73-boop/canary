@@ -109,6 +109,11 @@ export const settings = sqliteTable("settings", {
   calendarConnected: integer("calendar_connected", { mode: "boolean" }).notNull().default(false),
   pushEnabled: integer("push_enabled", { mode: "boolean" }).notNull().default(false),
   stripeMode: text("stripe_mode").notNull().default("test"), // "test" | "live"
+  // Secret path segment for the read-only iCal subscription feed
+  // (/api/public/calendar/<token>.ics) — empty until first generated from
+  // Admin > Settings. Knowing the token is the only access control; treat
+  // it like a password and regenerate if it ever leaks.
+  icsFeedToken: text("ics_feed_token").notNull().default(""),
 });
 
 export const insertSettingsSchema = createInsertSchema(settings).omit({ id: true });

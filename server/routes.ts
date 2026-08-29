@@ -11,6 +11,8 @@ import {
   type EmailTemplates,
 } from "./storage";
 import { sendBookingEmails, sendNewBookingAlert, sendBookingReceivedEmail, sendCancellationEmail, sendTestEmail, verifySmtpConnection } from "./email";
+import { buildIcsFeed } from "./ics";
+import crypto from "node:crypto";
 import {
   insertBlockedDateSchema,
   insertSettingsSchema,
@@ -285,6 +287,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(b);
   });
 
+  // Read-only iCal subscription feed — no session, the token in the path
+  // is the only access control. Wrong or missing token looks like a
+  // regular 404, so it doesn't confirm to a guesser whether a feed even
+  // exists at this URL shape.
+  app.get("/api/public/calendar/:token.ics", async (req, res) => {
+    const settings = await storage.getSettings();
+    if (!settings.icsFeedToken || req.params.token !== settings.icsFeedToken) {
+      return res.status(404).send("Not found");
+    }
+    const bookings = (await storage.listBookings()).filter(
+      (b) => b.status === "confirmed" || b.status === "completed"
+    );
+    const ics = buildIcsFeed(bookings, settings.studioName || tenantConfig.brand.name);
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", "inline; filename=bookings.ics");
+    res.send(ics);
+  });
+
   // ========= ADMIN AUTH =========
   // Registered before the blanket gate below so login/logout stay reachable
   // without a session. Everything else under /api/admin requires one.
@@ -463,6 +483,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const parse = insertSettingsSchema.partial().safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: parse.error.flatten() });
     res.json(await storage.updateSettings(parse.data));
+  });
+
+  // ========= ICS CALENDAR FEED =========
+
+  app.get("/api/admin/ics-feed", async (req, res) => {
+    let settings = await storage.getSettings();
+    if (!settings.icsFeedToken) {
+      settings = await storage.updateSettings({ icsFeedToken: crypto.randomBytes(20).toString("hex") });
+    }
+    const origin = `${req.protocol}://${req.get("host")}`;
+    res.json({ url: `${origin}/api/public/calendar/${settings.icsFeedToken}.ics` });
+  });
+
+  app.post("/api/admin/ics-feed/regenerate", async (req, res) => {
+    const settings = await storage.updateSettings({ icsFeedToken: crypto.randomBytes(20).toString("hex") });
+    const origin = `${req.protocol}://${req.get("host")}`;
+    res.json({ url: `${origin}/api/public/calendar/${settings.icsFeedToken}.ics` });
   });
 
   // ========= PUBLIC CONTENT / GALLERY / WORKING HOURS / REVIEWS =========
