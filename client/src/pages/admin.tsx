@@ -490,10 +490,13 @@ function BookingDetailDialog({ open, onClose, booking }: { open: boolean; onClos
 // ============ SCHEDULE (full upcoming list) ============
 function ScheduleTab() {
   const today = todayIso();
-  const future = addDays(today, 90);
+  // No "to" bound — staff can add a manual booking for any date (no
+  // maxAdvanceDays check on the admin add-booking route), so this list
+  // needs to show everything from today onward, not just the next 90 days,
+  // or a booking made further out than that silently disappears from view.
   const { data: bookings = [] } = useQuery<AdminBooking[]>({
-    queryKey: ["/api/admin/bookings", { from: today, to: future }],
-    queryFn: async () => (await apiRequest("GET", `/api/admin/bookings?from=${today}&to=${future}`)).json(),
+    queryKey: ["/api/admin/bookings", { from: today }],
+    queryFn: async () => (await apiRequest("GET", `/api/admin/bookings?from=${today}`)).json(),
   });
   const [addOpen, setAddOpen] = useState(false);
 
